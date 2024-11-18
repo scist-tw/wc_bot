@@ -2,8 +2,8 @@
 For SCIST 2025 寒訓
 
 有個requirements.txt 
-裡面放必要環境（不要把整個虛擬環境丟上來）
-用以下來下載（如想開venv請先開後在install）
+裡面放必要環境表（不要把整個虛擬環境丟上來）
+用來下載（如想開venv請先開後在install）
 ```
 pip install -r requirements.txt
 ```
