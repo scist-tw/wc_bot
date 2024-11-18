@@ -1,0 +1,2 @@
+# SCIST_Bot
+For SCIST 2025 寒訓
