@@ -6,13 +6,14 @@ class Respond(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
+    @commands.guild_only()
     async def on_message(self, message):
         if message.author.bot:
             return
 
         if message.content.lower().startswith('hello'):
             await message.channel.send('Hello!')
-        if message.contents('hello'):
+        if message.content('hello'):
             await message.channel.send('Hello!')
 
 async def setup(bot):
