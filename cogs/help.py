@@ -8,7 +8,7 @@ logger = logging.getLogger('Help')
 
 class HelpView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=180)  # 3分鐘超時
+        super().__init__(timeout=180)  
 
     @discord.ui.button(label="一般指令", style=discord.ButtonStyle.primary)
     async def show_help(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -31,7 +31,6 @@ class HelpView(discord.ui.View):
             await interaction.response.send_message(embed=embed, ephemeral=True)
         else:
             try:
-                # 在伺服器中轉址到 DM
                 dm_embed = discord.Embed(
                     title="請在此使用指令",
                     description="請在私訊中使用 `/help` 指令查看可用功能",

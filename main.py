@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import logging
 import os
+import json
 import asyncio
 import datetime
 logging.basicConfig(level=logging.INFO)
@@ -10,11 +11,26 @@ intents.members = True
 intents.dm_messages = True
 Logchannel = 1311722075832062036
 
+
+def load_json_folder(folder_path: str) -> dict:
+    data = {}
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.json'):
+            name = filename.replace('.json', '')
+            with open(f"{folder_path}/{filename}", 'r', encoding='utf-8') as f:
+                data[name] = json.load(f)
+    return data
+
+json_data = load_json_folder("json")
+
+token = json_data["token"]["tokens"]["test"] #我的機器人token結構長這樣
+emoji = json_data["emoji"]
+#------------------------------------------------------
 class Bot(commands.Bot):
     def __init__(self) :
         super().__init__(command_prefix="#", intents=intents,dm_permission=True)
         self.loadcogs = [f"cogs.{i[:-3]}" for i in os.listdir("./cogs") if i.endswith(".py")]
-    
+
     @commands.Cog.listener()
     async def on_message(self, message):
         if isinstance(message.channel, discord.DMChannel):
@@ -72,7 +88,4 @@ class Bot(commands.Bot):
 
 bot = Bot()
 #------------------------------------------------------
-import json
-with open("token.json", "r") as f:
-    token = json.load(f)
-bot.run(token["tokens"]["test"])
+bot.run(token)

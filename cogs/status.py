@@ -15,7 +15,7 @@ class Status(commands.Cog):
         embed = discord.Embed(title="機器人狀態", color=discord.Color.red())
         message = await interaction.followup.send("正在收集數據...", embed=embed)
 
-        # 獲取CPU使用率
+        # CPU
         embed.add_field(name="CPU使用率", value="計算中...", inline=False)
         await message.edit(content="正在檢查 CPU 使用率...", embed=embed)
         await asyncio.sleep(1)
@@ -23,7 +23,7 @@ class Status(commands.Cog):
         embed.set_field_at(0, name="CPU使用率", value=f"{cpu_usage}%", inline=False)
         await message.edit(embed=embed)
 
-        # 獲取RAM使用率
+        # RAM
         embed.add_field(name="RAM使用率", value="計算中...", inline=False)
         await message.edit(content="正在檢查 RAM 使用率...", embed=embed)
         await asyncio.sleep(1)
@@ -32,7 +32,7 @@ class Status(commands.Cog):
         embed.set_field_at(1, name="RAM使用率", value=f"{ram_usage}%", inline=False)
         await message.edit(embed=embed)
 
-        # 獲取網路接收和發送資訊
+        # 網路
         embed.add_field(name="網路接收", value="計算中...", inline=False)
         embed.add_field(name="網路發送", value="計算中...", inline=False)
         await message.edit(content="正在檢查網路使用情況...", embed=embed)
@@ -44,7 +44,7 @@ class Status(commands.Cog):
         embed.set_field_at(3, name="網路發送", value=f"{network_sent} MB", inline=False)
         await message.edit(embed=embed)
 
-        # 獲取磁碟使用率
+        # 磁碟
         embed.add_field(name="磁碟使用率", value="計算中...", inline=False)
         await message.edit(content="正在檢查磁碟使用率...", embed=embed)
         await asyncio.sleep(1)
@@ -61,9 +61,6 @@ class Status(commands.Cog):
         embed.add_field(name="機器人版本", value=bot_version, inline=False)
         embed.add_field(name="服務器數量", value=server_count, inline=False)
         embed.add_field(name="用戶數量", value=user_count, inline=False)
-        
-        embed.set_thumbnail(url=self.bot.user.avatar.url)
-        embed.set_footer(text=f"開發by: {interaction.user.name}", icon_url=interaction.user.avatar.url)
 
         await message.edit(content="資料收集完成！", embed=embed)
 
