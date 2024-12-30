@@ -9,9 +9,36 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Push Count
+        run: |
+          FILE=push_count.txt
+          if [ ! -f $FILE ]; then
+            echo 0 > $FILE
+          fi
+      - name: Increment Push Count
+        id: push_count
+        run: |
+          FILE=push_count.txt
+          COUNT=$(cat $FILE)
+          COUNT=$((COUNT + 1))
+          echo $COUNT > $FILE
+          echo "count=$COUNT" >> $GITHUB_ENV
       - name: Send Discord Notification
         run: |
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d '{"content": "有新的推送到 main 分支！"}' \
+               -d "{
+                     \"content\": \"WOW! ${{ github.actor }} 推了個酷酷的東西欸！！！、\\n居然已經推了${GITHUB_ENV}次\"
+                   }" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+      - name: Commit Push Count
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add push_count.txt
+          git commit -m "Update push count to $GITHUB_ENV"
+          git push
