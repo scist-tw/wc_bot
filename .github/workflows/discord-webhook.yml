@@ -42,7 +42,7 @@ jobs:
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "{
-                     \"content\": \"WOW! ${{ github.actor }} 推了個酷酷的東西欸！！！\\n居然已經推了${{ steps.increment_push_count.outputs.count }}次\"
+                     \"content\": \"WOW ${{ github.actor }} 推了個酷酷的東西欸！！！\\n居然已經推了${{ steps.increment_push_count.outputs.count }}次\"
                    }" \
                $DISCORD_WEBHOOK_URL
 
