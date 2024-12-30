@@ -8,7 +8,7 @@ class Status(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name='status', description='顯示機器人狀態(測試嘻嘻嘻)')
+    @app_commands.command(name='status', description='顯示機器人狀態')
     async def status(self, interaction: discord.Interaction):
         await interaction.response.defer()
 
