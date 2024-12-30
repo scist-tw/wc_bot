@@ -5,12 +5,13 @@ import os
 import json
 import asyncio
 import datetime
+from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.all()
 intents.members = True
 intents.dm_messages = True
-Logchannel = 1311722075832062036
-
+Logchannel = 1323010589911421030
+load_dotenv()
 
 def load_json_folder(folder_path: str) -> dict:
     data = {}
@@ -23,7 +24,7 @@ def load_json_folder(folder_path: str) -> dict:
 
 json_data = load_json_folder("json")
 
-token = json_data["token"]["tokens"]["test"] #我的機器人token結構長這樣
+token = os.getenv("DISCORD_TOKEN")
 emoji = json_data["emoji"]
 #------------------------------------------------------
 class Bot(commands.Bot):

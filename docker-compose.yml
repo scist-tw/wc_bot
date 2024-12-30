@@ -1,0 +1,8 @@
+services:
+  wc_dc_bot:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    restart: unless-stopped
