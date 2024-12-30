@@ -6,3 +6,8 @@ services:
     volumes:
       - .:/app
     restart: unless-stopped
+    networks:
+      - default
+networks:
+  default:
+    name: wc_dc_bot_network
