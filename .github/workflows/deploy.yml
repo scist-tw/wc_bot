@@ -26,4 +26,4 @@ jobs:
         run: echo "DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}" >> $GITHUB_ENV
 
       - name: Run Python script
-        run: python app.py
+        run: python bot.py
