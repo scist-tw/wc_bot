@@ -40,7 +40,11 @@ emoji 已導入
 可以用```self.emoji = self.bot.emoji```導入  
 ```{self.emoji['XXX']}```調用  
 
+計分系統{  
+加分、分數板(有動圖)
+}  
 
-
+提升一部分文字的美觀(?  
+加個emoji而已
 
 # Error
