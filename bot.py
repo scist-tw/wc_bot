@@ -25,12 +25,16 @@ def load_json_folder(folder_path: str) -> dict:
 json_data = load_json_folder("json")
 
 token = os.getenv("DISCORD_TOKEN")
-emoji = json_data["emoji"]
+#token = json_data["token"]["tokens"]["test"]
+
 #------------------------------------------------------
 class Bot(commands.Bot):
     def __init__(self) :
         super().__init__(command_prefix="#", intents=intents,dm_permission=True)
         self.loadcogs = [f"cogs.{i[:-3]}" for i in os.listdir("./cogs") if i.endswith(".py")]
+        self.json_data = json_data
+        self.emoji = self.json_data["emoji"]
+        self.score = self.json_data["score"]
 
     @commands.Cog.listener()
     async def on_message(self, message):

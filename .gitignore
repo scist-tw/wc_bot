@@ -1,1 +1,4 @@
 .env
+.gitignore
+token.json
+venv
