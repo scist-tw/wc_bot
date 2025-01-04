@@ -10,12 +10,72 @@ import traceback
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger('MemberVerification')
 
+#--------------------------------------------------------------------------------------------------
+
+class VerificationButton(discord.ui.Button):
+    """驗證按鈕"""
+    def __init__(self, button_id=1):
+        super().__init__(label="輸入驗證 Token", style=discord.ButtonStyle.primary, custom_id=f"verification_button{button_id}")
+
+    async def callback(self, interaction: discord.Interaction):
+        modal = VerificationModal(bot=interaction.client)
+        await interaction.response.send_modal(modal)
+
+class VerificationModal(discord.ui.Modal):
+    """驗證 Modal，處理 Token 輸入"""
+    def __init__(self, bot):
+        super().__init__(title="驗證 Token 輸入")
+        self.bot = bot 
+        self.emoji = self.bot.emoji
+
+        self.token = discord.ui.TextInput(label="請輸入您的驗證 Token", style=discord.TextStyle.short)
+        self.add_item(self.token) 
+
+    async def on_submit(self, interaction: discord.Interaction):
+        cog = interaction.client.get_cog("MemberVerification")
+        if not cog:
+            await interaction.response.send_message("系統錯誤，請聯絡資訊組。", ephemeral=True)
+            return
+
+        token = self.token.value
+        role_id = cog.tokens_roles.get(token)
+
+        if role_id:
+            role = interaction.guild.get_role(role_id)
+            if role:
+                try:
+                    await interaction.user.add_roles(role)
+                    await interaction.response.send_message(f"{self.emoji['箭頭']}領取成功！您已獲得 `{role.name}`身分組! {self.emoji['welcome']}", ephemeral=True)
+
+                except discord.Forbidden:
+                    await interaction.response.send_message("驗證失敗，機器人缺少權限來添加身分組。", ephemeral=True)
+
+                except Exception as e:
+                    logger.error(f"出現錯誤{e}")
+                    await interaction.response.send_message("驗證過程中發生未知錯誤 請聯絡資訊組。", ephemeral=True)
+
+                return
+
+            await interaction.response.send_message("指定的身分組不存在 請聯絡資訊組。", ephemeral=True)
+            logger.error(f"這個 {role_id} 找不到 {token}")
+            return
+
+        await interaction.response.send_message(">> 驗證失敗 無效的Token <<", ephemeral=True)
+        logger.warning(f"出現錯誤{token} by {interaction.user.name} ({interaction.user.id})")
+
+#--------------------------------------------------------------------------------------------------
+class AlwaysView(discord.ui.View):
+    def __init__(self): 
+        super().__init__(timeout=None)
+        self.add_item(VerificationButton(button_id=1))
+
+
 class MemberVerification(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.emoji = self.bot.emoji
         self.data_file = "cogs/tokens_roles.json"
         self.tokens_roles = self.load_data()
-#--------------------------------------------------------------------------------------------------
 
     def load_data(self):
         """載入 Token 與身分組的對應資料"""
@@ -59,13 +119,11 @@ class MemberVerification(commands.Cog):
     async def generate_panel(self, interaction: discord.Interaction):
         """生成驗證面板"""
         embed = discord.Embed(
-            title="驗證系統",
-            description="請點擊下方按鈕輸入您的驗證 Token 以領取身分組。",
+            title=f"{self.emoji['welcome']}登入系統{self.emoji['welcome']}",
+            description="請點擊下方按鈕輸入驗證 Token 領取身分組",
             color=discord.Color.blue()
         )
-        button = VerificationButton()
-        view = discord.ui.View()
-        view.add_item(button)
+        view = AlwaysView()
 
         await interaction.response.send_message(embed=embed, view=view)
     
@@ -77,51 +135,5 @@ class MemberVerification(commands.Cog):
             logger.error(f"Error generating panel: {error}")
             await interaction.response.send_message("生成面板時出現未知錯誤，請聯絡資訊組。", ephemeral=True)
 #--------------------------------------------------------------------------------------------------
-
-class VerificationButton(discord.ui.Button):
-    """驗證按鈕"""
-    def __init__(self):
-        super().__init__(label="輸入驗證 Token", style=discord.ButtonStyle.primary)
-
-    async def callback(self, interaction: discord.Interaction):
-        modal = VerificationModal()
-        await interaction.response.send_modal(modal)
-
-class VerificationModal(discord.ui.Modal, title="驗證 Token 輸入"):
-    """驗證 Modal，處理 Token 輸入"""
-    token = discord.ui.TextInput(label="請輸入您的驗證 Token", style=discord.TextStyle.short)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        cog = interaction.client.get_cog("MemberVerification")
-        if not cog:
-            await interaction.response.send_message("系統錯誤，請聯絡資訊組。", ephemeral=True)
-            return
-
-        token = self.token.value
-        role_id = cog.tokens_roles.get(token)
-
-        if role_id:
-            role = interaction.guild.get_role(role_id)
-            if role:
-                try:
-                    await interaction.user.add_roles(role)
-                    await interaction.response.send_message(f"領取成功！您的組別是 `{role.name}`", ephemeral=True)
-
-                except discord.Forbidden:
-                    await interaction.response.send_message("驗證失敗，機器人缺少權限來添加身分組。", ephemeral=True)
-
-                except Exception as e:
-                    logger.error(f"出現錯誤{e}")
-                    await interaction.response.send_message("驗證過程中發生未知錯誤 請聯絡資訊組。", ephemeral=True)
-
-                return
-
-            await interaction.response.send_message("指定的身分組不存在 請聯絡資訊組。", ephemeral=True)
-            logger.error(f"這個 {role_id} 找不到 {token}")
-            return
-
-        await interaction.response.send_message(">> 驗證失敗 無效的Token <<", ephemeral=True)
-        logger.warning(f"出現錯誤{token} by {interaction.user.name} ({interaction.user.id})")
-
 async def setup(bot):
     await bot.add_cog(MemberVerification(bot))
