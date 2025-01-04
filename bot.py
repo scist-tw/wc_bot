@@ -7,13 +7,13 @@ import asyncio
 import datetime
 
 from cogs.member_verification import AlwaysView
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.all()
 intents.members = True
 intents.dm_messages = True
 Logchannel = 1323010589911421030
-load_dotenv()
+# load_dotenv()
 
 def load_json_folder(folder_path: str) -> dict:
     data = {}
@@ -56,7 +56,7 @@ class Bot(commands.Bot):
         try:
             self.add_view(AlwaysView())
         except Exception as e:
-            logging.error(f"-->視圖註冊失敗: {e}")
+            logging.error(f"-->按鈕註冊失敗: {e}")
 
         synced = await self.tree.sync()
         print(f'-->已加載{len(synced)}個指令')
@@ -66,7 +66,7 @@ class Bot(commands.Bot):
         logging.info(f'-->Bot ID: {self.user.id}')
         asyncio.create_task(self.change_status())
         logging.info(f"-->{self.user}已啟動<--")
-        bot.add_view(self.VerificationButton())
+
     async def send_error_log(self, error_msg: str, error_trace: str = None):
         channel = self.get_channel(Logchannel)
         if channel:
