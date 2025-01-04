@@ -5,7 +5,7 @@ services:
       - .env
     volumes:
       - .:/app
-    restart: unless-stopped
+    # restart: unless-stopped
     networks:
       - default
 networks:
