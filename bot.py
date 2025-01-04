@@ -27,7 +27,6 @@ def load_json_folder(folder_path: str) -> dict:
 json_data = load_json_folder("json")
 
 token = os.getenv("DISCORD_TOKEN")
-#token = json_data["token"]["tokens"]["test"]
 
 #------------------------------------------------------
 class Bot(commands.Bot):
@@ -45,7 +44,7 @@ class Bot(commands.Bot):
                 return
 
             await self.process_commands(message)
-    
+
     async def setup_hook(self):
         logging.info(f"-->嘗試加載: {self.loadcogs}")
         for ext in self.loadcogs:
@@ -67,7 +66,7 @@ class Bot(commands.Bot):
         logging.info(f'-->Bot ID: {self.user.id}')
         asyncio.create_task(self.change_status())
         logging.info(f"-->{self.user}已啟動<--")
-
+        bot.add_view(self.VerificationButton())
     async def send_error_log(self, error_msg: str, error_trace: str = None):
         channel = self.get_channel(Logchannel)
         if channel:
