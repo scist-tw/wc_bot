@@ -26,25 +26,27 @@ pip freeze > requirements.txt
 每個玩家 6 個號碼(四位數) 也等於 6 條命  
 狼誰都可以殺  
 當"全部的狼人"殺 5 人後開投票  
-投票系統  
+投票系統
 
 計分系統{  
 活動需求  
 狼人殺  
 待新增...  
-}  
-
+}
 
 # 已完成的功能
+
 emoji 已導入  
-可以用```self.emoji = self.bot.emoji```導入  
-```{self.emoji['XXX']}```調用  
+可以用`self.emoji = self.bot.emoji`導入  
+`{self.emoji['XXX']}`調用
 
 計分系統{  
 加分、分數板(有動圖)
-}  
+}
 
 提升一部分文字的美觀(?  
-加個emoji而已
+加個 emoji 而已
 
 # Error
+
+test
