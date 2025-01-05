@@ -23,7 +23,7 @@ class WelcomeButton(discord.ui.Button):
                 try:
                     await interaction.user.add_roles(role)
                     await interaction.response.send_message(
-                        f"已成功領取 `<@&{role_id}>` 身分組",
+                        f"已成功領取 <@&{role_id}> 身分組",
                         ephemeral=True
                     )
                 except discord.Forbidden:
