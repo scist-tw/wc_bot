@@ -5,6 +5,7 @@ services:
       - .env
     volumes:
       - .:/app
+      - ../wc_scoreboard/scores.json:/app/json/score.json
     # restart: unless-stopped
     networks:
       - default

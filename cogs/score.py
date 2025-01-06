@@ -1,31 +1,32 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import websockets
 import json
 import os
 
 class ScoreSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.scores = self.bot.score
+        self.scores = self.load_scores()
         self.emoji = self.bot.emoji
-        self.websocket_url = "ws://10.130.0.6:30031"
-
-    # def save_scores(self):
-    #     with open("json/score.json", 'w', encoding='utf-8') as f:
-    #         json.dump(self.scores, f, ensure_ascii=False, indent=4)
-
-    async def fetch_scores(self):
-        """透過 WebSocket 取得分數資料"""
-        try:
-            async with websockets.connect(self.websocket_url) as websocket:
-                response = await websocket.recv()
-                return json.loads(response)
-        except Exception as e:
-            print(f"WebSocket 連線失敗: {e}")
-            return None
-
+    
+    def load_scores(self):
+        """讀取 JSON 檔案，轉換成適合使用的字典結構"""
+        with open("json/score.json", 'r', encoding='utf-8') as f:
+            raw_scores = json.load(f)
+        return {
+            item["team"]: {"name": f"組別 {item['team']}", "score": item["score"]}
+            for item in raw_scores
+        }
+        
+    def save_scores(self):
+        """將內部字典結構轉回 JSON 檔案格式"""
+        raw_scores = [
+            {"team": team, "score": data["score"]}
+            for team, data in self.scores.items()
+        ]
+        with open("json/score.json", 'w', encoding='utf-8') as f:
+            json.dump(raw_scores, f, ensure_ascii=False, indent=4)
 
     @app_commands.command(name="addscore", description="給指定組別加分")
     @app_commands.describe(group_number = "組別編號", points = "分數")
@@ -47,18 +48,20 @@ class ScoreSystem(commands.Cog):
 
     @app_commands.command(name="scoreboard", description="查看分數板")
     async def scoreboard(self, interaction: discord.Interaction):
-        scores = await self.fetch_scores()
-        if not scores or "groups" not in scores:
-            await interaction.response.send_message("無法取得分數資料，請稍後再試。")
+        if not self.scores:
+            await interaction.response.send_message("目前沒有任何組別分數")
             return
-
-        embed = discord.Embed(title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}", color=discord.Color.blue())
-        for group_number, group_data in scores["groups"].items():
+        embed = discord.Embed(
+            title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}",
+            color=discord.Color.blue(),
+        )
+        for group_number, group_data in self.scores.items():
             embed.add_field(name=group_data["name"], value=f"{group_data['score']} 分", inline=False)
 
-        view = ScoreboardView(scores=scores["groups"], emoji=self.bot.emoji)
+        view = ScoreboardView(scores=self.scores, emoji=self.bot.emoji)
         await interaction.response.send_message(embed=embed, view=view)
 
+class ScoreboardView(discord.ui.View):
 
 class ScoreboardView(discord.ui.View):
     def __init__(self, scores, emoji):
