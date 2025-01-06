@@ -4,43 +4,26 @@ from discord import app_commands
 import json
 import os
 import websockets
+import logging
+
+logger = logging.getLogger('score')
 
 class ScoreSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.scores = self.bot.score
         self.emoji = self.bot.emoji
-        self.websocket_url = "ws://10.130.0.6:30031"
-
-    # def save_scores(self):
-    #     with open("json/score.json", 'w', encoding='utf-8') as f:
-    #         json.dump(self.scores, f, ensure_ascii=False, indent=4)
             
     async def fetch_scores_from_websocket(self):
-        async with websockets.connect(self.websocket_url) as websocket:
-            response = await websocket.recv()
-            data = json.loads(response) 
-            scores = {item['team']: {'name': f"Team {item['team']}", 'score': item['score']} for item in data}
-            return {"groups": scores}
-
-
-    # @app_commands.command(name="addscore", description="給指定組別加分")
-    # @app_commands.describe(group_number = "組別編號", points = "分數")
-    # @app_commands.checks.has_permissions(administrator=True)
-    # async def add_score(self, interaction: discord.Interaction, group_number: int, points: int):
-    #     if str(group_number) not in self.scores["groups"]:
-    #         await interaction.response.send_message(f"無效的組別編號 請輸入 1 至 {len(self.scores['groups'])} 之間的數字", ephemeral=True)
-    #         return
-
-    #     group_data = self.scores["groups"][str(group_number)] 
-    #     group_name = group_data["name"] 
-    #     current_score = group_data["score"]  
-
-    #     self.scores["groups"][str(group_number)]["score"] += points
-    #     self.save_scores() 
-    #     await interaction.response.send_message(
-    #         f"{self.emoji['勾勾']}  已為 {group_name} 增加 {points} 分 目前分數為 {self.scores['groups'][str(group_number)]['score']} 分"
-    #     )
+        try:
+            async with websockets.connect("ws://10.130.0.6:30031") as websocket:
+                response = await websocket.recv()
+                data = json.loads(response) 
+                scores = {item['team']: {'name': f"Team {item['team']}", 'score': item['score']} for item in data}
+                return {"groups": scores}
+        except Exception as e:
+            logger.error(f"WebSocket 發生錯誤: {str(e)}")
+            return False
 
     @app_commands.command(name="scoreboard", description="查看分數板")
     async def scoreboard(self, interaction: discord.Interaction):
