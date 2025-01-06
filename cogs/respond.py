@@ -10,10 +10,7 @@ class Respond(commands.Cog):
     async def on_message(self, message):
         if message.author.bot:
             return
-
-        if message.content.lower().startswith('hello'):
-            await message.channel.send('Hello!')
-        if message.content('hello'):
+        if 'hello' in message.content.lower():
             await message.channel.send('Hello!')
 
 async def setup(bot):
