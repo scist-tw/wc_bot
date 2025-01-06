@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.all()
 intents.members = True
 intents.dm_messages = True
-Logchannel = 1323010589911421030
+Logchannel = 1323193810284445807
 # load_dotenv()
 
 def load_json_folder(folder_path: str) -> dict:
