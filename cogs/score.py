@@ -10,7 +10,7 @@ class ScoreSystem(commands.Cog):
         self.bot = bot
         self.scores = self.bot.score
         self.emoji = self.bot.emoji
-        self.websocket_url = "ws://webhook.scist.org:30031"
+        self.websocket_url = "ws://10.130.0.6:30031"
 
     # def save_scores(self):
     #     with open("json/score.json", 'w', encoding='utf-8') as f:
