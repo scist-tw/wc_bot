@@ -46,7 +46,7 @@ class ScoreboardView(discord.ui.View):
 
     @discord.ui.button(label="各組分數", style=discord.ButtonStyle.primary)
     async def show_all(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.scores = await ScoreSystem.fetch_scores_from_websocket()
+        ScoreSystem.scores = await ScoreSystem.fetch_scores_from_websocket()
         embed = discord.Embed(title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}", color=discord.Color.blue())
         for group_number, group_data in self.scores.items():
             embed.add_field(name=group_data["name"], value=f"{group_data['score']} 分", inline=False)
