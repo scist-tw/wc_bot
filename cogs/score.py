@@ -3,62 +3,55 @@ from discord.ext import commands
 from discord import app_commands
 import json
 import os
+import websockets
 
 class ScoreSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.scores = self.load_scores()
+        self.scores = self.bot.score
         self.emoji = self.bot.emoji
-    
-    def load_scores(self):
-        """讀取 JSON 檔案，轉換成適合使用的字典結構"""
-        with open("json/score.json", 'r', encoding='utf-8') as f:
-            raw_scores = json.load(f)
-        return {
-            item["team"]: {"name": f"組別 {item['team']}", "score": item["score"]}
-            for item in raw_scores
-        }
-        
-    def save_scores(self):
-        """將內部字典結構轉回 JSON 檔案格式"""
-        raw_scores = [
-            {"team": team, "score": data["score"]}
-            for team, data in self.scores.items()
-        ]
-        with open("json/score.json", 'w', encoding='utf-8') as f:
-            json.dump(raw_scores, f, ensure_ascii=False, indent=4)
+        self.websocket_url = "ws://webhook.scist.org:30031"
 
-    @app_commands.command(name="addscore", description="給指定組別加分")
-    @app_commands.describe(group_number = "組別編號", points = "分數")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def add_score(self, interaction: discord.Interaction, group_number: int, points: int):
-        if str(group_number) not in self.scores["groups"]:
-            await interaction.response.send_message(f"無效的組別編號 請輸入 1 至 {len(self.scores['groups'])} 之間的數字", ephemeral=True)
-            return
+    # def save_scores(self):
+    #     with open("json/score.json", 'w', encoding='utf-8') as f:
+    #         json.dump(self.scores, f, ensure_ascii=False, indent=4)
+            
+    async def fetch_scores_from_websocket(self):
+        async with websockets.connect(self.websocket_url) as websocket:
+            response = await websocket.recv()
+            data = json.loads(response) 
+            scores = {item['team']: {'name': f"Team {item['team']}", 'score': item['score']} for item in data}
+            return {"groups": scores}
 
-        group_data = self.scores["groups"][str(group_number)] 
-        group_name = group_data["name"] 
-        current_score = group_data["score"]  
 
-        self.scores["groups"][str(group_number)]["score"] += points
-        self.save_scores() 
-        await interaction.response.send_message(
-            f"{self.emoji['勾勾']}  已為 {group_name} 增加 {points} 分 目前分數為 {self.scores['groups'][str(group_number)]['score']} 分"
-        )
+    # @app_commands.command(name="addscore", description="給指定組別加分")
+    # @app_commands.describe(group_number = "組別編號", points = "分數")
+    # @app_commands.checks.has_permissions(administrator=True)
+    # async def add_score(self, interaction: discord.Interaction, group_number: int, points: int):
+    #     if str(group_number) not in self.scores["groups"]:
+    #         await interaction.response.send_message(f"無效的組別編號 請輸入 1 至 {len(self.scores['groups'])} 之間的數字", ephemeral=True)
+    #         return
+
+    #     group_data = self.scores["groups"][str(group_number)] 
+    #     group_name = group_data["name"] 
+    #     current_score = group_data["score"]  
+
+    #     self.scores["groups"][str(group_number)]["score"] += points
+    #     self.save_scores() 
+    #     await interaction.response.send_message(
+    #         f"{self.emoji['勾勾']}  已為 {group_name} 增加 {points} 分 目前分數為 {self.scores['groups'][str(group_number)]['score']} 分"
+    #     )
 
     @app_commands.command(name="scoreboard", description="查看分數板")
     async def scoreboard(self, interaction: discord.Interaction):
-        if not self.scores:
+        self.scores = await self.fetch_scores_from_websocket()
+        if not self.scores["groups"]:
             await interaction.response.send_message("目前沒有任何組別分數")
             return
-        embed = discord.Embed(
-            title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}",
-            color=discord.Color.blue(),
-        )
-        for group_number, group_data in self.scores.items():
+        embed = discord.Embed(title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}", color=discord.Color.blue())
+        for group_number, group_data in self.scores["groups"].items():
             embed.add_field(name=group_data["name"], value=f"{group_data['score']} 分", inline=False)
-
-        view = ScoreboardView(scores=self.scores, emoji=self.bot.emoji)
+        view = ScoreboardView(scores=self.scores["groups"], emoji=self.bot.emoji)
         await interaction.response.send_message(embed=embed, view=view)
 
 class ScoreboardView(discord.ui.View):
