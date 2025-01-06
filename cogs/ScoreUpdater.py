@@ -80,7 +80,7 @@ class ScoreInputModal(discord.ui.Modal, title="輸入分數"):
     async def update_score_ws(self, team: str, score: int):
         """更新分數"""
         try:
-            async with websockets.connect('ws://webhook.scist.org:30031') as websocket:
+            async with websockets.connect('ws://10.130.0.6:30031') as websocket:
                 data = {
                     'team': team,
                     'points': score
@@ -120,7 +120,7 @@ class ScoreInputModal(discord.ui.Modal, title="輸入分數"):
                     description=f"""
                     由  <@{interaction.user.id}>
                     第 `{self.selected_value}` 小隊增加了 `{score_value}` 分
-                    線上計分版瀏覽: <URL>
+                    線上計分版瀏覽: https://wc.scist.org/scoreboard
                     """,
                     color=embed_color
                 )
