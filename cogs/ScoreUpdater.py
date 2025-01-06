@@ -80,7 +80,7 @@ class ScoreInputModal(discord.ui.Modal, title="輸入分數"):
     async def update_score_ws(self, team: str, score: int):
         """更新分數"""
         try:
-            async with websockets.connect('ws://host.docker.internal:8765') as websocket:
+            async with websockets.connect('ws://webhook.scist.org:30031') as websocket:
                 data = {
                     'team': team,
                     'points': score
