@@ -62,8 +62,6 @@ class ScoreSystem(commands.Cog):
         await interaction.response.send_message(embed=embed, view=view)
 
 class ScoreboardView(discord.ui.View):
-
-class ScoreboardView(discord.ui.View):
     def __init__(self, scores, emoji):
         super().__init__()
         self.scores = scores
