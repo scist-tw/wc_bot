@@ -42,7 +42,7 @@ class ScoreboardView(discord.ui.View):
         super().__init__()
         self.scores = scores
         self.emoji = emoji
-        
+
 
     @discord.ui.button(label="各組分數", style=discord.ButtonStyle.primary)
     async def show_all(self, interaction: discord.Interaction, button: discord.ui.Button):
