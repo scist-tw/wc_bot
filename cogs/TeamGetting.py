@@ -31,10 +31,11 @@ class TeamGetting(discord.ui.Button):
 
         if user_team and user_name:
             role = discord.utils.get(interaction.guild.roles, name=user_team)
+            studen_role = discord.utils.get(interaction.guild.roles, name="學員")
             if role:
                 try:
                     await interaction.user.add_roles(role)
-
+                    await interaction.user.add_roles(studen_role)
                     # 更新使用者暱稱
                     new_nickname = f"[{user_team}] {user_name}"
                     await interaction.user.edit(nick=new_nickname)
