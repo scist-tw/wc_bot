@@ -75,43 +75,43 @@
       "username": "taas3309"
     }
   ],
-	"第三小隊": [
-		{
-		  "name": "林可庭",
-		  "username": "claire058730"
-		},
-		{
-		  "name": "孔宥寧",
-		  "username": "bear_0831"
-		},
-		{
-		  "name": "何安易",
-		  "username": "hoanyi"
-		},
-		{
-		  "name": "李恆進",
-		  "username": "jinlee06_"
-		},
-		{
-		  "name": "蔡帛諺",
-		  "username": "ryan_0225"
-		},
-		{
-		  "name": "鍾正瑋",
-		  "username": "zhonggg_0312"
-		},
-		{
-		  "name": "王彥竣",
-		  "username": "690530"
-		},
-		{
-		  "name": "林冠昀",
-		  "username": "dariuslin"
-		},
-		{
-		  "name": "郭鎮緯",
-		  "username": "rori_daisuki"
-		}
+  "第三小隊": [
+    {
+      "name": "林可庭",
+      "username": "claire058730"
+    },
+    {
+      "name": "孔宥寧",
+      "username": "bear_0831"
+    },
+    {
+      "name": "何安易",
+      "username": "hoanyi"
+    },
+    {
+      "name": "李恆進",
+      "username": "jinlee06_"
+    },
+    {
+      "name": "蔡帛諺",
+      "username": "ryan_0225"
+    },
+    {
+      "name": "鍾正瑋",
+      "username": "zhonggg_0312"
+    },
+    {
+      "name": "王彥竣",
+      "username": "690530"
+    },
+    {
+      "name": "林冠昀",
+      "username": "dariuslin"
+    },
+    {
+      "name": "郭鎮緯",
+      "username": "rori_daisuki"
+    }
   ],
   "第四小隊": [
     {
@@ -246,7 +246,7 @@
     },
     {
       "name": "莊秉修",
-      "username": "Sunny"
+      "username": "sunnychuang1017"
     },
     {
       "name": "陳奕仲",
