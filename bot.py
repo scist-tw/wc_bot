@@ -15,13 +15,8 @@ logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.all()
 intents.members = True
 intents.dm_messages = True
-<<<<<<< HEAD
 Logchannel = 1323010589911421030
 load_dotenv()
-=======
-Logchannel = 1323193810284445807
-# load_dotenv()
->>>>>>> d7026f99a1dbb7c957446c9846f2f7fae00e1f92
 
 def load_json_folder(folder_path: str) -> dict:
     data = {}
@@ -33,7 +28,8 @@ def load_json_folder(folder_path: str) -> dict:
     return data
 
 json_data = load_json_folder("json")
-token = os.getenv("DISCORD_TOKEN")  # 從環境變數讀取 token
+
+token = os.getenv("DISCORD_TOKEN")  
 
 class Bot(commands.Bot):
     def __init__(self):
@@ -67,7 +63,7 @@ class Bot(commands.Bot):
                     self.loadcogs.append(f"cogs.wolf.{filename[:-3]}")
         self.data_manager = DataManager()
         
-        # 儲存組別身分組的 ID
+        # 需要再用
         self.team_roles = {
             "1": None, 
             "2": None,
@@ -120,7 +116,6 @@ class Bot(commands.Bot):
         await self.wait_until_ready()
 
     async def setup_hook(self):
-        # 啟動狀態監控
         self.status_monitor.start()
         
         logging.info(f"-->嘗試加載: {self.loadcogs}")
@@ -186,11 +181,11 @@ class Bot(commands.Bot):
             interaction, callback = await self.request_queue.get()
             try:
                 await callback(interaction)
-                await asyncio.sleep(1.2)  # 確保不超過 Discord 的限制
+                await asyncio.sleep(1.2)  
             except discord.errors.HTTPException as e:
-                if e.status == 429:  # Rate limit
+                if e.status == 429:  
                     self.rate_limit_hits += 1
-                    # 重新加入佇列
+
                     await self.request_queue.put((interaction, callback))
                     await asyncio.sleep(e.retry_after)
                 else:
@@ -205,7 +200,7 @@ class Bot(commands.Bot):
         try:
             await callback(interaction)
         except discord.errors.HTTPException as e:
-            if e.status == 429:  # Rate limit
+            if e.status == 429:  
                 self.rate_limit_hits += 1
                 await interaction.response.send_message(
                     "系統正在處理大量請求，已將您的請求加入佇列，請稍候...",
@@ -237,4 +232,4 @@ class DataManager:
             return {}
 
 bot = Bot()
-bot.run(token)  # 使用環境變數中的 token
+bot.run(token)  

@@ -43,10 +43,6 @@ class ScoreboardView(discord.ui.View):
         super().__init__(timeout=None)
         self.scores = scores
         self.emoji = emoji
-<<<<<<< HEAD
-=======
-
->>>>>>> d7026f99a1dbb7c957446c9846f2f7fae00e1f92
 
     @discord.ui.button(
         label="各組分數", 
