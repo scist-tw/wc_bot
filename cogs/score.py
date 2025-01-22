@@ -44,22 +44,31 @@ class ScoreSystem(commands.Cog):
 
         view = ScoreboardView(scores=self.scores["groups"], emoji=self.bot.emoji)
         await interaction.response.send_message(embed=embed, view=view)
+        self.bot.add_view(view)
 
 class ScoreboardView(discord.ui.View):
     def __init__(self, scores, emoji):
-        super().__init__()
+        super().__init__(timeout=None)
         self.scores = scores
         self.emoji = emoji
-        
 
-    @discord.ui.button(label="各組分數", style=discord.ButtonStyle.primary)
+    @discord.ui.button(
+        label="各組分數", 
+        style=discord.ButtonStyle.primary,
+        custom_id="scoreboard:all_scores"
+    )
     async def show_all(self, interaction: discord.Interaction, button: discord.ui.Button):
         embed = discord.Embed(title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}", color=discord.Color.blue())
         for group_number, group_data in self.scores.items():
             embed.add_field(name=group_data["name"], value=f"{group_data['score']} 分", inline=False)
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.defer()
+        await interaction.message.edit(embed=embed, view=self)
 
-    @discord.ui.button(label="排名", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(
+        label="排名", 
+        style=discord.ButtonStyle.secondary,
+        custom_id="scoreboard:rankings"
+    )
     async def show_rankings(self, interaction: discord.Interaction, button: discord.ui.Button):
         sorted_scores = sorted(self.scores.items(), key=lambda x: x[1]['score'], reverse=True)
         embed = discord.Embed(title="🏆 排名", color=discord.Color.gold())
@@ -78,7 +87,12 @@ class ScoreboardView(discord.ui.View):
         if all_zero:
             emoji = "暫無排行"
             embed.add_field(name=f"{emoji}",value=f"目前無任何分數", inline=False)
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.defer()
+        await interaction.message.edit(embed=embed, view=self)
+
+    async def on_timeout(self):
+        for item in self.children:
+            item.disabled = True
 
 async def setup(bot):
     await bot.add_cog(ScoreSystem(bot))
