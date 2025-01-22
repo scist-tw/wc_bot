@@ -3,45 +3,37 @@ from discord.ext import commands
 from discord import app_commands
 import json
 import os
+import websockets
+import logging
+
+logger = logging.getLogger('score')
 
 class ScoreSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.scores = self.bot.score
         self.emoji = self.bot.emoji
-
-    def save_scores(self):
-        with open("json/score.json", 'w', encoding='utf-8') as f:
-            json.dump(self.scores, f, ensure_ascii=False, indent=4)
-
-    @app_commands.command(name="addscore", description="給指定組別加分")
-    @app_commands.describe(group_number = "組別編號", points = "分數")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def add_score(self, interaction: discord.Interaction, group_number: int, points: int):
-        if str(group_number) not in self.scores["groups"]:
-            await interaction.response.send_message(f"無效的組別編號 請輸入 1 至 {len(self.scores['groups'])} 之間的數字", ephemeral=True)
-            return
-
-        group_data = self.scores["groups"][str(group_number)] 
-        group_name = group_data["name"] 
-        current_score = group_data["score"]  
-
-        self.scores["groups"][str(group_number)]["score"] += points
-        self.save_scores() 
-        await interaction.response.send_message(
-            f"{self.emoji['勾勾']}  已為 {group_name} 增加 {points} 分 目前分數為 {self.scores['groups'][str(group_number)]['score']} 分"
-        )
+            
+    async def fetch_scores_from_websocket(self):
+        try:
+            async with websockets.connect("ws://10.130.0.6:30031") as websocket:
+                response = await websocket.recv()
+                data = json.loads(response) 
+                scores = {item['team']: {'name': f"Team {item['team']}", 'score': item['score']} for item in data}
+                return {"groups": scores}
+        except Exception as e:
+            logger.error(f"WebSocket 發生錯誤: {str(e)}")
+            return False
 
     @app_commands.command(name="scoreboard", description="查看分數板")
     async def scoreboard(self, interaction: discord.Interaction):
+        self.scores = await self.fetch_scores_from_websocket()
         if not self.scores["groups"]:
             await interaction.response.send_message("目前沒有任何組別分數")
             return
-
         embed = discord.Embed(title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}", color=discord.Color.blue())
         for group_number, group_data in self.scores["groups"].items():
             embed.add_field(name=group_data["name"], value=f"{group_data['score']} 分", inline=False)
-
         view = ScoreboardView(scores=self.scores["groups"], emoji=self.bot.emoji)
         await interaction.response.send_message(embed=embed, view=view)
         self.bot.add_view(view)
@@ -51,6 +43,10 @@ class ScoreboardView(discord.ui.View):
         super().__init__(timeout=None)
         self.scores = scores
         self.emoji = emoji
+<<<<<<< HEAD
+=======
+
+>>>>>>> d7026f99a1dbb7c957446c9846f2f7fae00e1f92
 
     @discord.ui.button(
         label="各組分數", 
@@ -58,6 +54,7 @@ class ScoreboardView(discord.ui.View):
         custom_id="scoreboard:all_scores"
     )
     async def show_all(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ScoreSystem.scores = await ScoreSystem.fetch_scores_from_websocket()
         embed = discord.Embed(title=f"{self.emoji['星星']} 分數板 {self.emoji['星星']}", color=discord.Color.blue())
         for group_number, group_data in self.scores.items():
             embed.add_field(name=group_data["name"], value=f"{group_data['score']} 分", inline=False)

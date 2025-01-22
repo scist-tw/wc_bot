@@ -15,8 +15,13 @@ logging.basicConfig(level=logging.INFO)
 intents = discord.Intents.all()
 intents.members = True
 intents.dm_messages = True
+<<<<<<< HEAD
 Logchannel = 1323010589911421030
 load_dotenv()
+=======
+Logchannel = 1323193810284445807
+# load_dotenv()
+>>>>>>> d7026f99a1dbb7c957446c9846f2f7fae00e1f92
 
 def load_json_folder(folder_path: str) -> dict:
     data = {}

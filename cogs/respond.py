@@ -42,7 +42,6 @@ class Respond(commands.Cog):
 
         content = message.content.lower()
             
-        # 處理更改組別命令
         if content.startswith('!更改組別'):
             # 嘗試刪除訊息（不管是在伺服器還是私訊）
             try:
@@ -82,7 +81,6 @@ class Respond(commands.Cog):
                 response = await message.channel.send("請開啟私人訊息功能，以接收回應。")
                 await response.delete(delay=5)
 
-        # 處理其他關鍵字回應
         if 'hello' in content:
             await message.channel.send('Hello!')
 
