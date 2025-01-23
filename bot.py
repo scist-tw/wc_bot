@@ -30,7 +30,7 @@ def load_json_folder(folder_path: str) -> dict:
 
 json_data = load_json_folder("json")
 
-token = os.getenv("DISCORD_TOKEN")  
+token = os.getenv("DISCORD_TOKEN")
 
 class Bot(commands.Bot):
     def __init__(self):
@@ -38,7 +38,7 @@ class Bot(commands.Bot):
             command_prefix="!",
             intents=discord.Intents.all()
         )
-        
+
         self.json_data = json_data
         self.emoji = self.json_data["emoji"]
         self.score = self.json_data["score"]
@@ -63,17 +63,17 @@ class Bot(commands.Bot):
                 if filename.endswith(".py"):
                     self.loadcogs.append(f"cogs.wolf.{filename[:-3]}")
         self.data_manager = DataManager()
-        
+
         # 需要再用
         self.team_roles = {
-            "1": None, 
+            "1": None,
             "2": None,
-            "3": None,  
-            "4": None, 
-            "5": None, 
-            "6": None, 
-            "7": None, 
-            "8": None, 
+            "3": None,
+            "4": None,
+            "5": None,
+            "6": None,
+            "7": None,
+            "8": None,
             "9": None
         }
 
@@ -81,14 +81,14 @@ class Bot(commands.Bot):
     @tasks.loop(seconds=5)
     async def status_monitor(self):
         try:
-            if self.rate_limit_hits > 80:  
+            if self.rate_limit_hits > 80:
                 if self.system_status != "critical":
                     self.system_status = "critical"
                     await self.change_presence(
                         activity=discord.Game(name="|⚠️ 系統分流處理中"),
                         status=discord.Status.dnd
                     )
-            elif self.rate_limit_hits > 50: 
+            elif self.rate_limit_hits > 50:
                 if self.system_status != "unstable":
                     self.system_status = "unstable"
                     await self.change_presence(
@@ -118,9 +118,9 @@ class Bot(commands.Bot):
 
     async def setup_hook(self):
         self.status_monitor.start()
-        
+
         logging.info(f"-->嘗試加載: {self.loadcogs}")
-        
+
         for ext in self.loadcogs:
             try:
                 await self.load_extension(ext)
@@ -148,7 +148,8 @@ class Bot(commands.Bot):
     async def on_ready(self):
         logging.info(f'-->Bot ID: {self.user.id}')
         logging.info(f"-->{self.user}已啟動<--")
-
+        repo_channel_id = 1323193810284445807
+        await self.get_channl(repo_channel_id).send("# 🚨 Bot 復活了！！！")
 #-----------------------------------------------------------------------------------------------
     async def send_error_log(self, error_msg: str, error_trace: str = None):
         channel = self.get_channel(Logchannel)
@@ -171,7 +172,7 @@ class Bot(commands.Bot):
     async def queue_request(self, interaction: discord.Interaction, callback):
         """將請求加入佇列"""
         await self.request_queue.put((interaction, callback))
-        
+
         if not self.is_processing_queue:
             self.is_processing_queue = True
             asyncio.create_task(self.process_queue())
@@ -182,9 +183,9 @@ class Bot(commands.Bot):
             interaction, callback = await self.request_queue.get()
             try:
                 await callback(interaction)
-                await asyncio.sleep(1.2)  
+                await asyncio.sleep(1.2)
             except discord.errors.HTTPException as e:
-                if e.status == 429:  
+                if e.status == 429:
                     self.rate_limit_hits += 1
 
                     await self.request_queue.put((interaction, callback))
@@ -201,7 +202,7 @@ class Bot(commands.Bot):
         try:
             await callback(interaction)
         except discord.errors.HTTPException as e:
-            if e.status == 429:  
+            if e.status == 429:
                 self.rate_limit_hits += 1
                 await interaction.response.send_message(
                     "系統正在處理大量請求，已將您的請求加入佇列，請稍候...",
@@ -233,9 +234,9 @@ class DataManager:
                 current_data = json.load(f)
         except FileNotFoundError:
             current_data = {}
-        
+
         current_data.update(data_to_update)
-        
+
         with open('json/member.json', 'w', encoding='utf-8') as f:
             json.dump(current_data, f, ensure_ascii=False, indent=4)
 
@@ -248,4 +249,4 @@ class DataManager:
             return {}
 
 bot = Bot()
-bot.run(token)  
+bot.run(token)
