@@ -184,7 +184,7 @@ class ScoreUpdater(commands.Cog):
             title="小隊分數添加",
             description="""
             點擊下面按鈕添加小隊分數
-            線上計分版瀏覽: <URL>
+            線上計分版瀏覽:  https://wc.scist.org/scoreboard
             """,
             color=discord.Color.green()
         )
