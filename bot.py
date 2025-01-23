@@ -149,7 +149,7 @@ class Bot(commands.Bot):
         logging.info(f'-->Bot ID: {self.user.id}')
         logging.info(f"-->{self.user}已啟動<--")
         repo_channel_id = 1323193810284445807
-        await self.get_channl(repo_channel_id).send("# 🚨 Bot 復活了！！！")
+        await self.get_channel(repo_channel_id).send("# 🚨 Bot 復活了！！！")
 #-----------------------------------------------------------------------------------------------
     async def send_error_log(self, error_msg: str, error_trace: str = None):
         channel = self.get_channel(Logchannel)
