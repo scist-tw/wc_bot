@@ -145,6 +145,15 @@ class Bot(commands.Bot):
         synced = await self.tree.sync()
         print(f'-->已加載{len(synced)}個指令')
 
+        # 添加錯誤處理器
+        @self.event
+        async def on_command_error(ctx, error):
+            if isinstance(error, commands.CommandNotFound):
+                # 忽略 CommandNotFound 錯誤
+                return
+            # 其他錯誤仍然要記錄
+            logging.error(f"指令錯誤: {error}")
+
     async def on_ready(self):
         logging.info(f'-->Bot ID: {self.user.id}')
         logging.info(f"-->{self.user}已啟動<--")

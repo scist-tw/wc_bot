@@ -21,7 +21,7 @@ class QuestionCog(commands.Cog):
             json.dump(self.scores, f, ensure_ascii=False, indent=4)
 
     def save_team_question(self):
-        """儲存隊伍答題記錄"""
+        """儲存答題記錄"""
         with open('json/team_question.json', 'w', encoding='utf-8') as f:
             json.dump(self.team_question, f, ensure_ascii=False, indent=4)
 
@@ -115,7 +115,7 @@ class QuestionCog(commands.Cog):
                 try:
                     await self.bot.update_score(str(self.team_id.value), points)
                     self.cog.team_question[str(self.team_id.value)].append(str(self.question_id.value))
-                    self.cog.save_team_question()
+                    self.save_team_question()
                 except Exception as e:
                     logging.error(f"更新分數時發生錯誤: {e}")
             else:

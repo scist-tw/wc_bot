@@ -36,50 +36,172 @@ class Respond(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        # 忽略機器人的訊息
         if message.author.bot:
             return
 
         content = message.content.lower()
             
+        if content.startswith('!刪除使用者'):
+            # 檢查權限
+            if not any(role.name == "score_admin" for role in message.author.roles):
+                await message.channel.send("❌ 只有管理員可以使用此指令！", delete_after=5)
+                return
+
+            try:
+                # 從訊息中獲取要刪除的使用者 ID
+                user_id = content.split()[-1]
+                # 處理 mention 格式
+                if user_id.startswith('<@') and user_id.endswith('>'):
+                    user_id = user_id[2:-1]
+                    if user_id.startswith('!'):
+                        user_id = user_id[1:]
+
+                # 讀取當前資料
+                with open('json/member.json', 'r', encoding='utf-8') as f:
+                    member_data = json.load(f)
+
+                if user_id in member_data:
+                    del member_data[user_id]
+                    # 儲存更新後的資料
+                    with open('json/member.json', 'w', encoding='utf-8') as f:
+                        json.dump(member_data, f, ensure_ascii=False, indent=4)
+                    await message.channel.send(f"✅ 已刪除使用者 {user_id} 的資料！", delete_after=5)
+                else:
+                    await message.channel.send("❌ 找不到該使用者！", delete_after=5)
+
+            except Exception as e:
+                await message.channel.send("❌ 刪除使用者時發生錯誤！", delete_after=5)
+                print(f"刪除使用者時發生錯誤: {e}")
+
+            # 刪除指令訊息
+            try:
+                await message.delete()
+            except:
+                pass
+
+        elif content.startswith('!刪除答題記錄'):
+            # 檢查權限
+            if not any(role.name == "score_admin" for role in message.author.roles):
+                await message.channel.send("❌ 只有管理員可以使用此指令！", delete_after=5)
+                return
+
+            try:
+                args = content.split()
+                if len(args) != 2:
+                    await message.channel.send("❌ 格式錯誤！使用方式：!刪除答題記錄 <組別或all>", delete_after=5)
+                    return
+
+                target = args[1]
+                with open('json/team_question.json', 'r', encoding='utf-8') as f:
+                    team_question = json.load(f)
+
+                if target.lower() == 'all':
+                    # 清空所有組別的答題記錄
+                    team_question = {str(i): [] for i in range(1, 9)}
+                    await message.channel.send("✅ 已清空所有組別的答題記錄！", delete_after=5)
+                elif target.isdigit() and 1 <= int(target) <= 8:
+                    # 清空指定組別的答題記錄
+                    team_question[target] = []
+                    await message.channel.send(f"✅ 已清空第 {target} 組的答題記錄！", delete_after=5)
+                else:
+                    await message.channel.send("❌ 無效的組別！請輸入 1-8 或 all", delete_after=5)
+                    return
+
+                # 儲存更新後的資料
+                with open('json/team_question.json', 'w', encoding='utf-8') as f:
+                    json.dump(team_question, f, ensure_ascii=False, indent=4)
+
+            except Exception as e:
+                await message.channel.send("❌ 刪除答題記錄時發生錯誤！", delete_after=5)
+                print(f"刪除答題記錄時發生錯誤: {e}")
+
+            # 刪除指令訊息
+            try:
+                await message.delete()
+            except:
+                pass
+
         if content.startswith('!更改組別'):
-            # 嘗試刪除訊息（不管是在伺服器還是私訊）
             try:
                 await message.delete()
             except Exception as e:
                 print(f"刪除訊息時發生錯誤: {e}")
 
-            # 使用私訊回應
-            try:
-                parts = content.split()
-                if len(parts) != 2:
-                    await message.author.send("請輸入正確格式 !")
-                    return
-
+            # 檢查格式
+            parts = content.split()
+            
+            # 如果是管理員且有 mention 玩家
+            if (len(parts) == 3 and 
+                any(role.name == "score_admin" for role in message.author.roles) and 
+                message.mentions):
+                
+                target_user = message.mentions[0]
+                team_num = parts[2]
+                
                 try:
-                    team_num = int(parts[1])
+                    team_num = int(team_num)
                     if team_num < 1 or team_num > 8:
-                        await message.author.send("無效的隊伍編號！請輸入 1-8 之間的數字。")
+                        await message.channel.send(
+                            "❌ 無效的隊伍編號！請輸入 1-8 之間的數字。",
+                            delete_after=5
+                        )
                         return
 
-                    user_id = str(message.author.id)
+                    user_id = str(target_user.id)
                     if user_id not in self.member_data:
-                        await message.author.send("您還未綁定任何隊伍。")
+                        await message.channel.send(
+                            "❌ 該玩家還未綁定任何隊伍。",
+                            delete_after=5
+                        )
                         return
 
                     old_team = self.member_data[user_id]["team"]
                     self.member_data[user_id]["team"] = str(team_num)
                     self.save_member_data()
-                    await message.author.send(f"您的隊伍已從 {old_team} 更改為 {team_num}。")
+                    await message.channel.send(
+                        f"✅ 已將 {target_user.mention} 的隊伍從 {old_team} 更改為 {team_num}。",
+                        delete_after=5
+                    )
 
                 except ValueError:
-                    await message.author.send("請輸入有效的數字！")
+                    await message.channel.send(
+                        "❌ 請輸入有效的數字！",
+                        delete_after=5
+                    )
                     return
+                    
+            # 原本的自己更改組別功能
+            else:
+                try:
+                    if len(parts) != 2:
+                        await message.author.send("請輸入正確格式：!更改組別 <組別>")
+                        return
 
-            except discord.Forbidden:
-                # 如果無法私訊，則在頻道中發送訊息並設定自動刪除
-                response = await message.channel.send("請開啟私人訊息功能，以接收回應。")
-                await response.delete(delay=5)
+                    try:
+                        team_num = int(parts[1])
+                        if team_num < 1 or team_num > 8:
+                            await message.author.send("無效的隊伍編號！請輸入 1-8 之間的數字。")
+                            return
+
+                        user_id = str(message.author.id)
+                        if user_id not in self.member_data:
+                            await message.author.send("您還未綁定任何隊伍。")
+                            return
+
+                        old_team = self.member_data[user_id]["team"]
+                        self.member_data[user_id]["team"] = str(team_num)
+                        self.save_member_data()
+                        await message.author.send(f"您的隊伍已從 {old_team} 更改為 {team_num}。")
+
+                    except ValueError:
+                        await message.author.send("請輸入有效的數字！")
+                        return
+
+                except discord.Forbidden:
+                    response = await message.channel.send(
+                        "請開啟私人訊息功能，以接收回應。",
+                        delete_after=5
+                    )
 
         if 'hello' in content:
             await message.channel.send('Hello!')
