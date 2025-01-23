@@ -166,7 +166,6 @@ class WolfGameCog(commands.Cog):
         
         for user_id in self.member_data:
             try:
-                # 檢查玩家是否還活著
                 if self.member_data[user_id]["lives"] <= 0:
                     continue
                     
@@ -175,7 +174,7 @@ class WolfGameCog(commands.Cog):
                     if not user:
                         continue
                         
-                    view = TeamSelectView(self.bot, self.member_data)
+                    view = TeamSelectView(self.bot, self.member_data, interaction)
                     embed = discord.Embed(
                         title="🗳️ 狼人投票",
                         description="請在2分鐘內選擇一位可疑的玩家\n投票於 <t:{}:R> 結束".format(
@@ -241,7 +240,7 @@ class WolfGameCog(commands.Cog):
             try:
                 user = await self.bot.fetch_user(int(user_id))
                 if user:
-                    view = TeamSelectView(self.bot, self.member_data)
+                    view = TeamSelectView(self.bot, self.member_data, interaction=None)
                     embed = discord.Embed(
                         title="🗳️ 狼人投票",
                         description="請在2分鐘內選擇一位可疑的玩家\n投票於 <t:{}:R> 結束".format(
@@ -277,9 +276,14 @@ class WolfGameCog(commands.Cog):
             return None
             
         self.last_votes = self.votes.copy()
-        
-        # 重新讀取最新資料
         self.member_data = self.get_member_data()
+        
+        # 過濾掉死亡玩家的投票
+        self.votes = {
+            voter_id: voted_id 
+            for voter_id, voted_id in self.votes.items()
+            if voter_id in self.member_data and self.member_data[voter_id]["lives"] > 0
+        }
         
         vote_counts = {}
         for voted_id in self.votes.values():
@@ -382,10 +386,11 @@ class WolfGameCog(commands.Cog):
         )
 
 class TeamSelectView(discord.ui.View):
-    def __init__(self, bot, member_data):
+    def __init__(self, bot, member_data, interaction):
         super().__init__(timeout=None)
         self.bot = bot
         self.member_data = member_data
+        self.interaction = interaction
         self.add_team_select()
 
     def add_team_select(self):
@@ -445,7 +450,7 @@ class TeamMemberSelectView(discord.ui.View):
             return {}
 
     def add_member_select(self):
-        # 獲取最新資料
+        # 重新讀取最新資料
         self.member_data = self.get_member_data()
         
         options = []
@@ -514,7 +519,7 @@ class TeamMemberSelectView(discord.ui.View):
         # 獲取最新資料
         self.member_data = self.get_member_data()
         
-        view = TeamSelectView(self.bot, self.member_data)
+        view = TeamSelectView(self.bot, self.member_data, interaction=None)
         await interaction.response.edit_message(
             content="請選擇一個小組",
             view=view
