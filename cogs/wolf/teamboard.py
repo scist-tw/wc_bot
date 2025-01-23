@@ -87,7 +87,7 @@ class TeamboardCog(commands.Cog):
         )
         
         try:
-            async with websockets.connect("ws://10.130.0.6:30031",) as websocket:
+            async with websockets.connect("ws://10.130.0.6:30031") as websocket:
                 response = await websocket.recv()
                 scores = json.loads(response)
                 team_score = next(
@@ -97,7 +97,7 @@ class TeamboardCog(commands.Cog):
                 embed.add_field(name="小組分數", value=f"{team_score} 分", inline=False)
         except Exception as e:
             logger.error(f"獲取分數時發生錯誤: {e}")
-            embed.add_field(name="小組分數", value="無法獲取分數", inline=False)
+            embed.add_field(name="小組分數", value="讀取中...", inline=False)
         
         answered = len(self.team_question.get(str(team_id), []))
         embed.add_field(name="已答題數", value=f"{answered} 題", inline=False)

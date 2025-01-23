@@ -116,8 +116,8 @@ class WolfGameCog(commands.Cog):
 
             # 然後執行分數更新和其他操作
             try:
-                await self.bot.update_score(team_id, 5000)
-                await self.bot.update_score(victim_team, -3000)
+                await self.bot.update_score_ws(team_id, 5000)
+                await self.bot.update_score_ws(victim_team, -3000)
                 
                 # 更新殺人計數
                 if user_id not in self.wolf_kill_counter:

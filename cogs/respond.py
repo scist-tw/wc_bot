@@ -48,26 +48,41 @@ class Respond(commands.Cog):
                 return
 
             try:
-                # 從訊息中獲取要刪除的使用者 ID
-                user_id = content.split()[-1]
-                # 處理 mention 格式
-                if user_id.startswith('<@') and user_id.endswith('>'):
-                    user_id = user_id[2:-1]
-                    if user_id.startswith('!'):
-                        user_id = user_id[1:]
+                args = content.split()
+                if len(args) != 2:
+                    await message.channel.send("❌ 格式錯誤！使用方式：!刪除使用者 <@玩家或all>", delete_after=5)
+                    return
 
+                target = args[1]
+                
                 # 讀取當前資料
                 with open('json/member.json', 'r', encoding='utf-8') as f:
                     member_data = json.load(f)
 
-                if user_id in member_data:
-                    del member_data[user_id]
-                    # 儲存更新後的資料
-                    with open('json/member.json', 'w', encoding='utf-8') as f:
-                        json.dump(member_data, f, ensure_ascii=False, indent=4)
-                    await message.channel.send(f"✅ 已刪除使用者 {user_id} 的資料！", delete_after=5)
+                if target.lower() == 'all':
+                    # 清空所有玩家資料
+                    member_data = {}
+                    await message.channel.send("✅ 已清空所有玩家資料！", delete_after=5)
                 else:
-                    await message.channel.send("❌ 找不到該使用者！", delete_after=5)
+                    # 處理 mention 格式
+                    if target.startswith('<@') and target.endswith('>'):
+                        user_id = target[2:-1]
+                        if user_id.startswith('!'):
+                            user_id = user_id[1:]
+                    else:
+                        user_id = target
+
+                    if user_id in member_data:
+                        player_name = member_data[user_id].get('name', '未知')
+                        del member_data[user_id]
+                        await message.channel.send(f"✅ 已刪除玩家 {player_name} 的資料！", delete_after=5)
+                    else:
+                        await message.channel.send("❌ 找不到該玩家！", delete_after=5)
+                        return
+
+                # 儲存更新後的資料
+                with open('json/member.json', 'w', encoding='utf-8') as f:
+                    json.dump(member_data, f, ensure_ascii=False, indent=4)
 
             except Exception as e:
                 await message.channel.send("❌ 刪除使用者時發生錯誤！", delete_after=5)
@@ -129,6 +144,13 @@ class Respond(commands.Cog):
 
             # 檢查格式
             parts = content.split()
+            
+            # 重新讀取最新的 member_data
+            try:
+                with open('json/member.json', 'r', encoding='utf-8') as f:
+                    self.member_data = json.load(f)
+            except FileNotFoundError:
+                self.member_data = {}
             
             # 如果是管理員且有 mention 玩家
             if (len(parts) == 3 and 

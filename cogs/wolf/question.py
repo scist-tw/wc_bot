@@ -114,10 +114,12 @@ class QuestionCog(commands.Cog):
                 )
                 try:
                     await self.bot.update_score_ws(str(self.team_id.value), points)
-                    self.cog.team_question[str(self.team_id.value)].append(str(self.question_id.value))
-                    self.save_team_question()
+                    team_question[str(self.team_id.value)].append(str(self.question_id.value))
+                    with open('json/team_question.json', 'w', encoding='utf-8') as f:
+                        json.dump(team_question, f, ensure_ascii=False, indent=4)
+                    self.cog.team_question = team_question
                 except Exception as e:
-                    logging.error(f"更新分數時發生錯誤: {e}")
+                    logging.error(f"更新分數或答題記錄時發生錯誤: {e}")
             else:
                 await interaction.response.send_message(
                     f"❌ 答案錯誤！",
