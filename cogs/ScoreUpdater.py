@@ -127,9 +127,12 @@ class ScoreInputModal(discord.ui.Modal, title="輸入分數"):
                 )
                 await interaction.response.send_message(embed=embed,ephemeral=True)
                 """log"""
-                log_channel_id = 1325334810507481108
+                log_channel_id = 1330101749008302112
                 log_channel = interaction.guild.get_channel(log_channel_id)
-                await log_channel.send(embed=embed)
+                if log_channel:
+                    await log_channel.send(embed=embed)
+                else:
+                    logger.error(f"無法找到日誌頻道 ID: {log_channel_id}")
 
             else:
                 await interaction.response.send_message(

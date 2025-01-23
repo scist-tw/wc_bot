@@ -40,7 +40,7 @@ class QuestionCog(commands.Cog):
                 return json.load(f)
         except FileNotFoundError:
             return {}
-        
+
 #-----------------------------------------------------------------------------------------------
     # 所有遊戲相關功能前檢查開始了沒
     async def check_game_active(self, interaction: discord.Interaction) -> bool:
@@ -52,32 +52,32 @@ class QuestionCog(commands.Cog):
             )
             return False
         return True
-    
+
 #-----------------------------------------------------------------------------------------------
     class AnswerModal(discord.ui.Modal, title="回答題目"):
         def __init__(self, cog):
             super().__init__()
             self.cog = cog
             self.bot = cog.bot
-            
+
             self.question_id = discord.ui.TextInput(
                 label="題目編號",
                 placeholder="輸入題目編號",
                 required=True
             )
-            
+
             self.team_id = discord.ui.TextInput(
                 label="小隊編號",
                 placeholder="輸入你的小隊編號",
                 required=True
             )
-            
+
             self.answer = discord.ui.TextInput(
                 label="答案",
                 placeholder="輸入你的答案",
                 required=True
             )
-            
+
             self.add_item(self.question_id)
             self.add_item(self.team_id)
             self.add_item(self.answer)
@@ -86,7 +86,7 @@ class QuestionCog(commands.Cog):
             user_id = str(interaction.user.id)
             member_data = self.cog.get_member_data()
             team_question = self.cog.get_team_question()
-            
+
             # 題目是否存在
             if str(self.question_id.value) not in self.cog.questions:
                 await interaction.response.send_message(
@@ -98,7 +98,7 @@ class QuestionCog(commands.Cog):
             # 是否已答過
             if str(self.question_id.value) in team_question[str(self.team_id.value)]:
                 await interaction.response.send_message(
-                    f"❌ 這題你們小隊已經回答過了！", 
+                    f"❌ 這題你們小隊已經回答過了！",
                     ephemeral=True
                 )
                 return
@@ -113,7 +113,7 @@ class QuestionCog(commands.Cog):
                     ephemeral=True
                 )
                 try:
-                    await self.bot.update_score(str(self.team_id.value), points)
+                    await self.bot.update_score_ws(str(self.team_id.value), points)
                     self.cog.team_question[str(self.team_id.value)].append(str(self.question_id.value))
                     self.save_team_question()
                 except Exception as e:
@@ -130,9 +130,9 @@ class QuestionCog(commands.Cog):
         # 檢查遊戲是否開始
         if not await self.check_game_active(interaction):
             return
-            
+
         user_id = str(interaction.user.id)
-        
+
         # 是否死亡
         if user_id in self.member_data and self.member_data[user_id]["lives"] <= 0:
             await interaction.response.send_message(
@@ -140,7 +140,7 @@ class QuestionCog(commands.Cog):
                 ephemeral=True
             )
             return
-            
+
         modal = self.AnswerModal(self)
         await interaction.response.send_modal(modal)
 
