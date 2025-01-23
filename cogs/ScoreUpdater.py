@@ -80,6 +80,7 @@ class ScoreInputModal(discord.ui.Modal, title="輸入分數"):
     async def update_score_ws(self, team: str, score: int):
         """更新分數"""
         try:
+            # async with websockets.connect('ws://host.docker.internal:8765') as websocket:
             async with websockets.connect('ws://10.130.0.6:30031') as websocket:
                 data = {
                     'team': team,
@@ -120,13 +121,13 @@ class ScoreInputModal(discord.ui.Modal, title="輸入分數"):
                     description=f"""
                     由  <@{interaction.user.id}>
                     第 `{self.selected_value}` 小隊增加了 `{score_value}` 分
-                    線上計分版瀏覽: https://wc.scist.org/scoreboard
+                    線上計分版瀏覽: <URL>
                     """,
                     color=embed_color
                 )
                 await interaction.response.send_message(embed=embed,ephemeral=True)
                 """log"""
-                log_channel_id = 1330101749008302112
+                log_channel_id = 1325334810507481108
                 log_channel = interaction.guild.get_channel(log_channel_id)
                 await log_channel.send(embed=embed)
 
@@ -183,7 +184,7 @@ class ScoreUpdater(commands.Cog):
             title="小隊分數添加",
             description="""
             點擊下面按鈕添加小隊分數
-            線上計分版瀏覽: https://wc.scist.org/scoreboard
+            線上計分版瀏覽: <URL>
             """,
             color=discord.Color.green()
         )

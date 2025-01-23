@@ -4,6 +4,10 @@ from discord import app_commands
 import json
 import random
 import asyncio
+import websockets
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TeamboardCog(commands.Cog):
     def __init__(self, bot):
@@ -52,7 +56,7 @@ class TeamboardCog(commands.Cog):
         embed.set_footer(text="自動更新中...")
         return embed
 
-    def create_team_detail_embed(self, team_id):
+    async def create_team_detail_embed(self, team_id):
         """創建小組詳細資訊嵌入"""
         member_data = self.get_member_data()
         team_members = {
@@ -82,8 +86,18 @@ class TeamboardCog(commands.Cog):
             inline=False
         )
         
-        score = self.scores["groups"].get(str(team_id), {}).get("score", 0)
-        embed.add_field(name="小組分數", value=f"{score} 分", inline=False)
+        try:
+            async with websockets.connect("ws://10.130.0.6:30031",) as websocket:
+                response = await websocket.recv()
+                scores = json.loads(response)
+                team_score = next(
+                    (item['points'] for item in scores if item['team'] == str(team_id)), 
+                    0
+                )
+                embed.add_field(name="小組分數", value=f"{team_score} 分", inline=False)
+        except Exception as e:
+            logger.error(f"獲取分數時發生錯誤: {e}")
+            embed.add_field(name="小組分數", value="無法獲取分數", inline=False)
         
         answered = len(self.team_question.get(str(team_id), []))
         embed.add_field(name="已答題數", value=f"{answered} 題", inline=False)
@@ -92,12 +106,11 @@ class TeamboardCog(commands.Cog):
     
 #-----------------------------------------------------------------------------------------------
     @app_commands.command(
-        name="小組詳細狀況板", 
-        description="顯示所有小組的詳細狀況"
+        name="主控板", 
+        description="[工作人員]顯示所有小組的詳細狀況"
     )
     async def show_teamboard(self, interaction: discord.Interaction):
-        # 檢查是否有特定身分組
-        if not any(role.id == 1331277719887020107 for role in interaction.user.roles):
+        if not any(role.name == "score_admin" for role in interaction.user.roles):
             await interaction.response.send_message(
                 "❌ 只有管理員可以使用此命令！",
                 ephemeral=True
@@ -118,12 +131,10 @@ class TeamboardCog(commands.Cog):
     @tasks.loop(seconds=2)
     async def auto_refresh(self):
         """自動更新所有活動的團隊面板"""
-        # 檢查是否有任何資料變化
         current_data = self.get_member_data()
         current_scores = self.bot.score
         current_team_question = self.bot.team_question
-        
-        # 只有在資料有變化時才更新
+
         data_changed = (
             current_data != self.last_data or
             current_scores != self.last_scores or
@@ -138,18 +149,17 @@ class TeamboardCog(commands.Cog):
         self.last_scores = current_scores.copy()
         self.last_team_question = current_team_question.copy()
         
-        # 批量更新所有訊息
         for message_id, data in list(self.message_cache.items()):
             try:
                 message = data['message']
-                if not message.channel:  # 檢查訊息是否還存在
+                if not message.channel: 
                     self.message_cache.pop(message_id, None)
                     continue
                     
                 if data['type'] == 'main':
                     embed = self.create_main_embed()
                 else:
-                    embed = self.create_team_detail_embed(data['team_id'])
+                    embed = await self.create_team_detail_embed(data['team_id'])
                 
                 await message.edit(embed=embed)
             except Exception as e:
@@ -171,7 +181,6 @@ class TeamboardView(discord.ui.View):
         self.add_team_buttons()
         
     def add_team_buttons(self):
-        # 添加小組選擇下拉選單
         select = discord.ui.Select(
             placeholder="選擇小組查看詳情",
             options=[
@@ -196,7 +205,7 @@ class TeamboardView(discord.ui.View):
             style=discord.ButtonStyle.success,
             custom_id="start_game",
             row=1,
-            disabled=game_active  # 如果遊戲已開始則禁用
+            disabled=game_active 
         )
         start_button.callback = self.start_game
         self.add_item(start_button)
@@ -207,27 +216,35 @@ class TeamboardView(discord.ui.View):
             style=discord.ButtonStyle.danger,
             custom_id="stop_game",
             row=1,
-            disabled=not game_active  # 如果遊戲未開始則禁用
+            disabled=not game_active
         )
         stop_button.callback = self.stop_game
         self.add_item(stop_button)
 
     async def team_select_callback(self, interaction: discord.Interaction):
-        team_id = int(interaction.data["values"][0])
-        cog = self.bot.get_cog('TeamboardCog')
-        embed = cog.create_team_detail_embed(team_id)
-        view = TeamDetailView(self.bot, team_id)
-        await interaction.response.edit_message(embed=embed, view=view)
-        message = interaction.message
-        cog.message_cache[message.id] = {
-            'message': message,
-            'type': 'detail',
-            'team_id': team_id
-        }
+        try:
+            # 先延遲回應
+            await interaction.response.defer()
+            
+            team_id = int(interaction.data["values"][0])
+            cog = self.bot.get_cog('TeamboardCog')
+            embed = await cog.create_team_detail_embed(team_id)
+            view = TeamDetailView(self.bot, team_id)
+            
+            # 使用 edit_original_response 而不是 edit_message
+            await interaction.edit_original_response(embed=embed, view=view)
+            
+            message = interaction.message
+            cog.message_cache[message.id] = {
+                'message': message,
+                'type': 'detail',
+                'team_id': team_id
+            }
+        except Exception as e:
+            logger.error(f"處理小組選擇時發生錯誤: {e}")
 
     async def start_game(self, interaction: discord.Interaction):
-        # 檢查是否有特定身分組
-        if not any(role.id == 1331277719887020107 for role in interaction.user.roles):
+        if not any(role.name == "score_admin" for role in interaction.user.roles):
             await interaction.response.send_message(
                 "❌ 只有管理員可以使用此功能！",
                 ephemeral=True
@@ -258,8 +275,7 @@ class TeamboardView(discord.ui.View):
             await interaction.followup.send("✅ 遊戲已開始！", ephemeral=True)
 
     async def stop_game(self, interaction: discord.Interaction):
-        # 檢查是否有特定身分組
-        if not any(role.id == 1331277719887020107 for role in interaction.user.roles):
+        if not any(role.name == "score_admin" for role in interaction.user.roles):
             await interaction.response.send_message(
                 "❌ 只有管理員可以使用此功能！",
                 ephemeral=True
@@ -301,16 +317,25 @@ class TeamDetailView(discord.ui.View):
         row=0
     )
     async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
-        cog = self.bot.get_cog('TeamboardCog')
-        embed = cog.create_main_embed()
-        view = TeamboardView(self.bot)
-        await interaction.response.edit_message(embed=embed, view=view)
-        message = interaction.message
-        cog.message_cache[message.id] = {
-            'message': message,
-            'type': 'main',
-            'team_id': None
-        }
+        try:
+            # 先延遲回應
+            await interaction.response.defer()
+            
+            cog = self.bot.get_cog('TeamboardCog')
+            embed = cog.create_main_embed()
+            view = TeamboardView(self.bot)
+            
+            # 使用 edit_original_response
+            await interaction.edit_original_response(embed=embed, view=view)
+            
+            message = interaction.message
+            cog.message_cache[message.id] = {
+                'message': message,
+                'type': 'main',
+                'team_id': None
+            }
+        except Exception as e:
+            logger.error(f"返回主頁時發生錯誤: {e}")
 
     @discord.ui.button(
         label="刷新",
@@ -320,7 +345,7 @@ class TeamDetailView(discord.ui.View):
     )
     async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
         cog = self.bot.get_cog('TeamboardCog')
-        embed = cog.create_team_detail_embed(self.team_id)
+        embed = await cog.create_team_detail_embed(self.team_id)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(
@@ -330,47 +355,57 @@ class TeamDetailView(discord.ui.View):
         row=0
     )
     async def select_wolves(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # 檢查是否有特定身分組
-        if not any(role.id == 1331277719887020107 for role in interaction.user.roles):
+        if not any(role.name == "score_admin" for role in interaction.user.roles):
             await interaction.response.send_message(
                 "❌ 只有管理員可以使用此功能！",
                 ephemeral=True
             )
             return
 
-        cog = self.bot.get_cog('TeamboardCog')
-        member_data = cog.get_member_data()
-        team_members = [
-            mid for mid, data in member_data.items() 
-            if data["team"] == str(self.team_id)
-        ]
-        
-        if len(team_members) < 2:
-            await interaction.response.send_message(
-                "成員數量不足，無法選擇狼人！",
+        # 先回應互動
+        await interaction.response.defer()
+
+        try:
+            cog = self.bot.get_cog('TeamboardCog')
+            member_data = cog.get_member_data()
+            team_members = [
+                mid for mid, data in member_data.items() 
+                if data["team"] == str(self.team_id)
+            ]
+            
+            if len(team_members) < 2:
+                await interaction.followup.send(
+                    "成員數量不足，無法選擇狼人！",
+                    ephemeral=True
+                )
+                return
+                
+            wolves = random.sample(team_members, 2)
+            
+            # 更新資料
+            for mid in member_data:
+                member_data[mid]["is_wolf"] = mid in wolves
+            
+            cog.save_member_data(member_data)
+            
+            # 更新顯示
+            embed = await cog.create_team_detail_embed(self.team_id)
+            await interaction.edit_original_response(embed=embed, view=self)
+            
+            # 私訊通知被選中的狼人
+            for wolf_id in wolves:
+                try:
+                    user = await self.bot.fetch_user(int(wolf_id))
+                    await user.send("🐺 你被選為狼人了！")
+                except:
+                    continue
+
+        except Exception as e:
+            logger.error(f"選擇狼人時發生錯誤: {e}")
+            await interaction.followup.send(
+                "❌ 選擇狼人時發生錯誤，請稍後再試。",
                 ephemeral=True
             )
-            return
-            
-        wolves = random.sample(team_members, 2)
-        
-        # 更新資料
-        for mid in member_data:
-            member_data[mid]["is_wolf"] = mid in wolves
-        
-        cog.save_member_data(member_data)
-        
-        # 更新顯示
-        embed = cog.create_team_detail_embed(self.team_id)
-        await interaction.response.edit_message(embed=embed, view=self)
-        
-        # 私訊通知被選中的狼人
-        for wolf_id in wolves:
-            try:
-                user = await self.bot.fetch_user(int(wolf_id))
-                await user.send("🐺 你被選為狼人了！")
-            except:
-                continue
 
 #-----------------------------------------------------------------------------------------------
 async def setup(bot):

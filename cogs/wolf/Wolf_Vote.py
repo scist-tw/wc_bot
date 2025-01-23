@@ -6,6 +6,7 @@ import random
 import asyncio
 from datetime import datetime, timedelta
 import logging
+import websockets
 
 logger = logging.getLogger('WolfGame')
 
@@ -21,9 +22,9 @@ class WolfGameCog(commands.Cog):
         self.check_wolf_kills.start()
         self.vote_interval = 600  
         self.disable_duration = 300  
-        self.game_active = False  # 遊戲狀態
-        self.kill_cooldowns = {}  # 新增：記錄每個狼人的殺人冷卻時間
-        self.last_votes = {}  # 新增：記錄上一輪的投票記錄
+        self.game_active = False  
+        self.kill_cooldowns = {}  
+        self.last_votes = {}  
 
     def get_member_data(self):
         """每次都重新讀取最新資料"""
@@ -104,72 +105,52 @@ class WolfGameCog(commands.Cog):
                 )
                 return
 
-            # 更新分數
             team_id = self.member_data[user_id]["team"]
             victim_team = self.member_data[target_user_id]["team"]
             
-            if team_id in self.scores["groups"]:
-                self.scores["groups"][team_id]["score"] += 5000  # 狼人加分
-
-            if victim_team in self.scores["groups"]:
-                self.scores["groups"][victim_team]["score"] -= 3000  # 受害者扣分
-
-            # 更新殺人計數
-            if user_id not in self.wolf_kill_counter:
-                self.wolf_kill_counter[user_id] = 0
-            self.wolf_kill_counter[user_id] += 1
-
-            # 通知被害者
-            try:
-                victim_user = await self.bot.fetch_user(int(target_user_id))
-                if victim_user:
-                    await victim_user.send(
-                        f"{victim_user.mention} 💀 你被狼人殺害了！請立即去找工作人員更換新編號。"
-                    )
-            except Exception as e:
-                logger.error(f"無法通知被害者: {e}")
-
-            # 更新受害者資料
-            self.member_data[target_user_id]["lives"] -= 1
-            will_die = self.member_data[target_user_id]["lives"] <= 0  # 檢查是否會死亡
-            self.member_data[target_user_id]["id"] = ""  # 清除 ID
-            self.member_data[target_user_id]["killed_by"] = user_id  # 記錄是誰殺的
-            
-            # 發送通知
-            try:
-                victim_user = await self.bot.fetch_user(int(target_user_id))
-                if victim_user:
-                    if will_die:  # 如果這次攻擊會導致死亡
-                        death_msg = f"{victim_user.mention} 💀 你已經死亡！\n"
-                        death_msg += "- 你無法使用狼人技能(如果你是狼了話)\n"
-                        death_msg += "- 你無法更換編號"
-                        await victim_user.send(death_msg)
-                    else:  # 如果還有生命值
-                        await victim_user.send(
-                            f"{victim_user.mention} 你被狼人殺害了！請立即去找工作人員更換新編號。"
-                        )
-            except Exception as e:
-                logger.error(f"無法通知玩家: {e}")
-
+            # 先回應互動
             await interaction.response.send_message(
                 f"✅ 成功殺害編號為 {玩家編號} 的玩家！",
                 ephemeral=True
             )
 
-            # 更新分數
-            with open('json/score.json', 'r+', encoding='utf-8') as f:
-                score_data = json.load(f)
-                score_data["groups"][team_id]["score"] += 5000
-                score_data["groups"][victim_team]["score"] -= 3000
-                f.seek(0)
-                json.dump(score_data, f, ensure_ascii=False, indent=4)
-                f.truncate()
+            # 然後執行分數更新和其他操作
+            try:
+                await self.bot.update_score(team_id, 5000)
+                await self.bot.update_score(victim_team, -3000)
+                
+                # 更新殺人計數
+                if user_id not in self.wolf_kill_counter:
+                    self.wolf_kill_counter[user_id] = 0
+                self.wolf_kill_counter[user_id] += 1
 
-            # 儲存更新後的 member 資料
-            self.save_member_data(self.member_data)
+                # 更新受害者資料
+                self.member_data[target_user_id]["lives"] -= 1
+                will_die = self.member_data[target_user_id]["lives"] <= 0
+                self.member_data[target_user_id]["id"] = ""
+                self.member_data[target_user_id]["killed_by"] = user_id
+                
+                self.save_member_data(self.member_data)
+                self.kill_cooldowns[user_id] = current_time
 
-            # 成功殺人後，記錄冷卻時間
-            self.kill_cooldowns[user_id] = current_time
+                # 通知被害者
+                try:
+                    victim_user = await self.bot.fetch_user(int(target_user_id))
+                    if victim_user:
+                        if will_die:
+                            death_msg = f"{victim_user.mention} 💀 你已經死亡！\n"
+                            death_msg += "- 你無法使用狼人技能(如果你是狼了話)\n"
+                            death_msg += "- 你無法更換編號"
+                            await victim_user.send(death_msg)
+                        else:
+                            await victim_user.send(
+                                f"{victim_user.mention} 你被狼人殺害了！請立即去找工作人員更換新編號。"
+                            )
+                except Exception as e:
+                    logger.error(f"無法通知玩家: {e}")
+
+            except Exception as e:
+                logger.error(f"執行狼人殺人操作時發生錯誤: {e}")
 
         await self.bot.handle_interaction(interaction, execute_command)
 
@@ -185,7 +166,6 @@ class WolfGameCog(commands.Cog):
                 return
 
     async def trigger_voting(self):
-        # 先獲取最新資料
         self.member_data = self.get_member_data()
         
         for user_id in self.member_data:
@@ -217,7 +197,7 @@ class WolfGameCog(commands.Cog):
 
     @tasks.loop(minutes=10) 
     async def periodic_vote(self):
-        if not self.game_active:  # 只在遊戲開始時執行
+        if not self.game_active:  
             return
         await self.start_voting()  
 
@@ -226,9 +206,11 @@ class WolfGameCog(commands.Cog):
         """等待10分鐘後再開始第一次投票"""
         await asyncio.sleep(600)  
 
-    @app_commands.command(name="發起投票", description="手動發起狼人投票")
+    @app_commands.command(
+        name="手動發起投票", 
+        description="[工作人員]手動發起狼人投票"
+    )
     async def manual_vote(self, interaction: discord.Interaction):
-        # 檢查是否在伺服器中
         if not interaction.guild:
             await interaction.response.send_message(
                 "❌ 此命令只能在伺服器中使用！",
@@ -236,8 +218,7 @@ class WolfGameCog(commands.Cog):
             )
             return
             
-        # 檢查是否有特定身分組
-        if not any(role.id == 1331277719887020107 for role in interaction.user.roles):
+        if not any(role.name == "score_admin" for role in interaction.user.roles):
             await interaction.response.send_message(
                 "❌ 只有管理員可以使用此功能！",
                 ephemeral=True
@@ -248,20 +229,17 @@ class WolfGameCog(commands.Cog):
         if not await self.check_game_active(interaction):
             return
 
-        # 先回應互動
         await interaction.response.send_message(
             "🗳️ 投票已發起！所有玩家將收到投票訊息。",
             ephemeral=False
         )
         
-        # 然後開始投票流程
         await self.start_voting()
 
     async def start_voting(self):
         self.votes = {}
         end_time = datetime.now() + timedelta(minutes=2)
         
-        # 發送投票訊息
         for user_id in self.member_data:
             try:
                 user = await self.bot.fetch_user(int(user_id))
@@ -279,13 +257,11 @@ class WolfGameCog(commands.Cog):
                 logger.error(f"無法發送投票: {e}")
 
         try:
-            # 等待2分鐘
             await asyncio.sleep(120)
             
-            # 計算投票結果並獲取結果 embed
             result_embed = await self.process_votes()
             
-            if result_embed:  # 如果有投票結果
+            if result_embed:  # 
                 for user_id in self.member_data:
                     try:
                         user = await self.bot.fetch_user(int(user_id))
@@ -294,20 +270,17 @@ class WolfGameCog(commands.Cog):
                     except Exception as e:
                         logger.error(f"無法發送投票結果: {e}")
 
-            # 儲存更新後的資料
             self.save_member_data(self.member_data)
         except Exception as e:
             logger.error(f"投票過程出錯: {e}")
 
     async def process_votes(self):
         """處理投票結果"""
-        if not self.votes:  # 如果沒有人投票
+        if not self.votes: 
             return None
             
-        # 保存這一輪的投票記錄
         self.last_votes = self.votes.copy()
         
-        # 計算票數
         vote_counts = {}
         for voted_id in self.votes.values():
             if voted_id in vote_counts:
@@ -330,25 +303,19 @@ class WolfGameCog(commands.Cog):
             
             self.member_data = self.get_member_data()
             
-            # 處理所有前五名
             for voted_id, count in top_votes:
                 if voted_id in self.member_data:
-                    # 禁用技能
                     self.member_data[voted_id]["is_skill_able"] = False
-                    # 啟動技能恢復計時器
                     asyncio.create_task(self.enable_skill_after_delay(voted_id))
             
-            # 儲存更新後的資料
             self.save_member_data(self.member_data)
             
-            # 創建結果 embed
             result_embed = discord.Embed(
                 title="🎯 投票結果",
                 description="以下是得票最高的前五位玩家：",
                 color=discord.Color.gold()
             )
             
-            # 顯示所有前五名
             for voted_id, count in top_votes:
                 player_data = self.member_data[voted_id]
                 result_embed.add_field(
@@ -361,7 +328,6 @@ class WolfGameCog(commands.Cog):
             
             return result_embed
 
-        # 清空投票
         self.votes.clear()
         return None
 
@@ -373,7 +339,10 @@ class WolfGameCog(commands.Cog):
             self.member_data[user_id]["is_skill_able"] = True
             self.save_member_data(self.member_data)
 
-    @app_commands.command(name="回復生命", description="回復玩家生命值")
+    @app_commands.command(
+        name="回復生命", 
+        description="[工作人員]回復玩家生命值"
+    )
     @app_commands.describe(user_id="玩家的Discord ID", lives="要設定的生命值")
     async def restore_lives(self, interaction: discord.Interaction, user_id: str, lives: int):
         # 檢查是否在伺服器中
@@ -385,7 +354,7 @@ class WolfGameCog(commands.Cog):
             return
             
         # 檢查是否有特定身分組
-        if not any(role.id == 1331277719887020107 for role in interaction.user.roles):
+        if not any(role.name == "score_admin" for role in interaction.user.roles):
             await interaction.response.send_message(
                 "❌ 只有管理員可以使用此命令！",
                 ephemeral=True

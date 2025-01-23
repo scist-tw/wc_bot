@@ -58,14 +58,7 @@ class QuestionCog(commands.Cog):
         def __init__(self, cog):
             super().__init__()
             self.cog = cog
-            
-            self.team_id = discord.ui.TextInput(
-                label="隊伍編號",
-                placeholder="輸入你的隊伍編號 (1-8)",
-                required=True,
-                min_length=1,
-                max_length=1
-            )
+            self.bot = cog.bot
             
             self.question_id = discord.ui.TextInput(
                 label="題目編號",
@@ -73,14 +66,20 @@ class QuestionCog(commands.Cog):
                 required=True
             )
             
-            self.answer = discord.ui.TextInput(
-                label="答案",
-                placeholder="輸入答案",
+            self.team_id = discord.ui.TextInput(
+                label="小隊編號",
+                placeholder="輸入你的小隊編號",
                 required=True
             )
             
-            self.add_item(self.team_id)
+            self.answer = discord.ui.TextInput(
+                label="答案",
+                placeholder="輸入你的答案",
+                required=True
+            )
+            
             self.add_item(self.question_id)
+            self.add_item(self.team_id)
             self.add_item(self.answer)
 
         async def on_submit(self, interaction: discord.Interaction):
@@ -108,27 +107,17 @@ class QuestionCog(commands.Cog):
             correct_answer = question_data["answer"]
             points = question_data["points"]
 
-            # 檢查答案
             if self.answer.value.lower() == correct_answer.lower():
-                # 更新分數
-                if str(self.team_id.value) in self.cog.scores["groups"]:
-                    self.cog.scores["groups"][str(self.team_id.value)]["score"] += points
-                    self.cog.save_scores()
-                    
-                    # 記錄已答題目
+                await interaction.response.send_message(
+                    f"✅ 答對了！獲得 {points} 分",
+                    ephemeral=True
+                )
+                try:
+                    await self.bot.update_score(str(self.team_id.value), points)
                     self.cog.team_question[str(self.team_id.value)].append(str(self.question_id.value))
                     self.cog.save_team_question()
-
-                    await interaction.response.send_message(
-                        f"✅ 答案正確！獲得 {points} 分！\n"
-                        f"目前總分：{self.cog.scores['groups'][str(self.team_id.value)]['score']} 分",
-                        ephemeral=True
-                    )
-                else:
-                    await interaction.response.send_message(
-                        f"❌ 無效的小隊編號！",
-                        ephemeral=True
-                    )
+                except Exception as e:
+                    logging.error(f"更新分數時發生錯誤: {e}")
             else:
                 await interaction.response.send_message(
                     f"❌ 答案錯誤！",

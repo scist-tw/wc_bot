@@ -39,7 +39,6 @@ class TeamBindModal(discord.ui.Modal, title="綁定組別"):
             )
             return
         
-        # 檢查數字在範圍
         try:
             team_num = int(self.team.value)
             if team_num < 1 or team_num > 8:
@@ -51,7 +50,6 @@ class TeamBindModal(discord.ui.Modal, title="綁定組別"):
             )
             return
 
-        # 更新資料
         self.cog.member_data[user_id] = {
             "team": str(team_num),
             "id": "",

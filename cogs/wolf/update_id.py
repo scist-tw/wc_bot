@@ -25,7 +25,7 @@ class UpdateIDModal(discord.ui.Modal, title="更新編號"):
 
     async def on_submit(self, interaction: discord.Interaction):
         # 檢查密碼
-        if self.password.value != "1234":  # 可以改成從設定檔讀取
+        if self.password.value != "2025scist5":
             await interaction.response.send_message(
                 "❌ 密碼錯誤！",
                 ephemeral=True
@@ -66,7 +66,10 @@ class UpdateIDCog(commands.Cog):
         with open('json/member.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
-    @app_commands.command(name="更改編號", description="更改你的遊戲編號")
+    @app_commands.command(
+        name="更改編號", 
+        description="[工作人員]更改(新)你的遊戲編號"
+    )
     async def update_id(self, interaction: discord.Interaction):
         # 只能在私訊中使用
         if interaction.guild is not None:

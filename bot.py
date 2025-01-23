@@ -6,6 +6,7 @@ import json
 import asyncio
 from datetime import datetime
 import psutil
+import websockets
 
 from cogs.member_verification import AlwaysView
 from cogs.score import ScoreboardView
@@ -209,6 +210,21 @@ class Bot(commands.Bot):
                 await self.queue_request(interaction, callback)
 
 #-----------------------------------------------------------------------------------------------
+    async def update_score_ws(self, team: str, score: int):
+        """通用更新分數"""
+        try:
+            async with websockets.connect('ws://10.130.0.6:30031') as websocket:
+                data = {
+                    'team': team,
+                    'points': score
+                }
+                await websocket.send(json.dumps(data))
+                logging.info(f"成功發送更新請求: 第{team}小隊 +{score}分")
+                return True
+        except Exception as e:
+            logging.error(f"WebSocket 更新分數時發生錯誤: {str(e)}")
+            return False
+
 class DataManager:
     @staticmethod
     def save_member_data(data_to_update):

@@ -16,9 +16,12 @@ class PlayerInfoCog(commands.Cog):
 #-----------------------------------------------------------------------------------------------
     @app_commands.command(name="個人資訊", description="查看你的個人遊戲資訊")
     async def show_player_info(self, interaction: discord.Interaction):
+        # 先延遲回應，給我們更多時間處理
+        await interaction.response.defer(ephemeral=True)
+        
         # 只能在私訊中使用
         if interaction.guild is not None:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ 請在私訊中使用此命令！",
                 ephemeral=True
             )
@@ -27,7 +30,7 @@ class PlayerInfoCog(commands.Cog):
         member_data = self.get_member_data()
         user_id = str(interaction.user.id)
         if user_id not in member_data:
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ 你還不是遊戲玩家！",
                 ephemeral=True
             )
@@ -57,7 +60,7 @@ class PlayerInfoCog(commands.Cog):
         )
 
         view = PlayerInfoView(self.bot, user_id)
-        await interaction.response.send_message(embed=embed, view=view)
+        await interaction.followup.send(embed=embed, view=view)
 
 #-----------------------------------------------------------------------------------------------
 class PlayerInfoView(discord.ui.View):

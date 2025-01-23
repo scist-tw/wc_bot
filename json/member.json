@@ -16,5 +16,13 @@
         "is_skill_able": true,
         "lives": 5,
         "killed_by": "1034446857012785262"
+    },
+    "1034446857012785262": {
+        "team": "2",
+        "id": "",
+        "name": "一看一看喔",
+        "is_wolf": false,
+        "is_skill_able": true,
+        "lives": 6
     }
 }
