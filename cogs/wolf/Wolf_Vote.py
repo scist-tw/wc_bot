@@ -56,21 +56,17 @@ class WolfGameCog(commands.Cog):
                 return
             user_id = str(interaction.user.id)
             
-            # 檢查冷卻時間
-            current_time = datetime.now()
-            if user_id in self.kill_cooldowns:
-                time_diff = (current_time - self.kill_cooldowns[user_id]).total_seconds()
-                if time_diff < 120:  # 2分鐘冷卻
-                    remaining = int(120 - time_diff)
-                    await interaction.response.send_message(
-                        f"❌ 技能冷卻中！還需要等待 {remaining} 秒",
-                        ephemeral=True
-                    )
-                    return
-
+            # 應該先讀取 member_data，再檢查冷卻時間
+            # 因為可能玩家已經死亡或不是狼人，不需要檢查冷卻
             self.member_data = self.get_member_data()
             
-            # 檢查是否死亡
+            if user_id not in self.member_data:
+                await interaction.response.send_message(
+                    "❌ 你不是遊戲玩家！",
+                    ephemeral=True
+                )
+                return
+
             if self.member_data[user_id]["lives"] <= 0:
                 await interaction.response.send_message(
                     "❌ 你已經死亡，無法使用狼人技能！",
@@ -78,7 +74,7 @@ class WolfGameCog(commands.Cog):
                 )
                 return
 
-            if user_id not in self.member_data or not self.member_data[user_id]["is_wolf"]:
+            if not self.member_data[user_id]["is_wolf"]:
                 await interaction.response.send_message(
                     f"❌ 你不是狼人，無法執行此操作！",
                     ephemeral=True
@@ -131,7 +127,7 @@ class WolfGameCog(commands.Cog):
                 self.member_data[target_user_id]["killed_by"] = user_id
                 
                 self.save_member_data(self.member_data)
-                self.kill_cooldowns[user_id] = current_time
+                self.kill_cooldowns[user_id] = datetime.now()
 
                 # 通知被害者
                 try:
@@ -179,6 +175,7 @@ class WolfGameCog(commands.Cog):
                     if not user:
                         continue
                         
+                    view = TeamSelectView(self.bot, self.member_data)
                     embed = discord.Embed(
                         title="🗳️ 狼人投票",
                         description="請在2分鐘內選擇一位可疑的玩家\n投票於 <t:{}:R> 結束".format(
@@ -186,7 +183,7 @@ class WolfGameCog(commands.Cog):
                         ),
                         color=discord.Color.blue()
                     )
-                    await user.send(embed=embed)
+                    await user.send(embed=embed, view=view)
                 except discord.Forbidden:
                     logger.warning(f"無法發送私訊給用戶 {user_id}")
                 except discord.NotFound:
@@ -281,6 +278,9 @@ class WolfGameCog(commands.Cog):
             
         self.last_votes = self.votes.copy()
         
+        # 重新讀取最新資料
+        self.member_data = self.get_member_data()
+        
         vote_counts = {}
         for voted_id in self.votes.values():
             if voted_id in vote_counts:
@@ -300,8 +300,6 @@ class WolfGameCog(commands.Cog):
                     current_count = count
                 else:
                     break
-            
-            self.member_data = self.get_member_data()
             
             for voted_id, count in top_votes:
                 if voted_id in self.member_data:
@@ -392,8 +390,13 @@ class TeamSelectView(discord.ui.View):
 
     def add_team_select(self):
         options = []
+        # 先檢查使用者是否死亡
+        user_id = str(self.interaction.user.id)
+        if user_id in self.member_data and self.member_data[user_id]["lives"] <= 0:
+            return  # 如果死亡就不添加任何選項
+            
         # 先列出所有有活人的組別
-        for team_id in range(1, 10):
+        for team_id in range(1, 9):
             team_members = [
                 (mid, data) for mid, data in self.member_data.items() 
                 if data["team"] == str(team_id) and data["lives"] > 0
@@ -407,13 +410,14 @@ class TeamSelectView(discord.ui.View):
                     )
                 )
 
-        select = discord.ui.Select(
-            placeholder="選擇一個小組",
-            options=options,
-            custom_id="team_select"
-        )
-        select.callback = self.team_select_callback
-        self.add_item(select)
+        if options:  # 只有在有選項時才添加選單
+            select = discord.ui.Select(
+                placeholder="選擇一個小組",
+                options=options,
+                custom_id="team_select"
+            )
+            select.callback = self.team_select_callback
+            self.add_item(select)
 
     async def team_select_callback(self, interaction: discord.Interaction):
         selected_team = interaction.data["values"][0]
@@ -479,6 +483,15 @@ class TeamMemberSelectView(discord.ui.View):
     async def member_select_callback(self, interaction: discord.Interaction):
         # 獲取最新資料
         self.member_data = self.get_member_data()
+        
+        # 檢查投票者是否死亡
+        user_id = str(interaction.user.id)
+        if user_id in self.member_data and self.member_data[user_id]["lives"] <= 0:
+            await interaction.response.send_message(
+                "❌ 你已經死亡，無法參與投票！",
+                ephemeral=True
+            )
+            return
         
         wolf_cog = self.bot.get_cog('WolfGameCog')
         if wolf_cog:
