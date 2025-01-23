@@ -56,7 +56,6 @@ class WolfGameCog(commands.Cog):
                 return
             user_id = str(interaction.user.id)
             
-            # 應該先讀取 member_data，再檢查冷卻時間
             # 因為可能玩家已經死亡或不是狼人，不需要檢查冷卻
             self.member_data = self.get_member_data()
             
@@ -174,7 +173,7 @@ class WolfGameCog(commands.Cog):
                     if not user:
                         continue
                         
-                    view = TeamSelectView(self.bot, self.member_data, interaction)
+                    view = TeamSelectView(self.bot, self.member_data, interaction=None)
                     embed = discord.Embed(
                         title="🗳️ 狼人投票",
                         description="請在2分鐘內選擇一位可疑的玩家\n投票於 <t:{}:R> 結束".format(

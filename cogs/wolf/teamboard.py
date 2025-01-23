@@ -87,7 +87,12 @@ class TeamboardCog(commands.Cog):
         )
         
         try:
-            async with websockets.connect("ws://10.130.0.6:30031") as websocket:
+            async with websockets.connect(
+                "ws://10.130.0.6:30031",
+                ping_interval=None,  # 禁用 ping
+                close_timeout=5,     # 5秒超時
+                ping_timeout=5       # ping 超時
+            ) as websocket:
                 response = await websocket.recv()
                 scores = json.loads(response)
                 team_score = next(
@@ -339,14 +344,23 @@ class TeamDetailView(discord.ui.View):
 
     @discord.ui.button(
         label="刷新",
-        style=discord.ButtonStyle.green,
+        style=discord.ButtonStyle.success,
         custom_id="refresh",
         row=0
     )
     async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
-        cog = self.bot.get_cog('TeamboardCog')
-        embed = await cog.create_team_detail_embed(self.team_id)
-        await interaction.response.edit_message(embed=embed, view=self)
+        try:
+            # 使用 defer 來避免 interaction timeout
+            await interaction.response.defer()
+            
+            embed = await self.bot.get_cog('TeamboardCog').create_team_detail_embed(self.team_id)
+            # 使用 edit_original_response 而不是 followup.edit_message
+            await interaction.edit_original_response(
+                embed=embed,
+                view=self
+            )
+        except Exception as e:
+            logger.error(f"刷新時發生錯誤: {e}")
 
     @discord.ui.button(
         label="隨機選擇狼人",
