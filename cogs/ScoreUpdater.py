@@ -113,7 +113,7 @@ class ScoreInputModal(discord.ui.Modal, title="輸入分數"):
             else:
                 embed_color = discord.Color.dark_gray()
             # 嘗試更新分數
-            success = await self.bot.update_score_ws(self.selected_value, score_value)
+            success = await self.update_score_ws(self.selected_value, score_value)
 
             if success:
                 embed = discord.Embed(
