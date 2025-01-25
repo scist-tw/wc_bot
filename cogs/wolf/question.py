@@ -184,17 +184,13 @@ class QuestionCog(commands.Cog):
             )
 
 #-----------------------------------------------------------------------------------------------
-async def send_score_log(self, interaction: discord.Interaction, teams_points: list, reason: str):
+    async def send_score_log(self, interaction: discord.Interaction, teams_points: list, reason: str):
         """
         發送分數更新記錄
         teams_points: [(team_id, points)] 格式的列表，包含要更新的隊伍和分數
         reason: 加減分原因
         """
         try:
-            # 如果沒有分數變動，直接返回
-            if not teams_points:
-                return
-
             # 決定 embed 顏色（根據第一個分數決定）
             first_points = teams_points[0][1]
             if first_points > 0:
@@ -223,25 +219,14 @@ async def send_score_log(self, interaction: discord.Interaction, teams_points: l
 
             # 發送到記錄頻道
             log_channel_id = 1330101749008302112
-            try:
-                log_channel = interaction.client.get_channel(log_channel_id)
-                if log_channel:
-                    await log_channel.send(embed=embed)
-                else:
-                    logger.error(f"無法找到日誌頻道 ID: {log_channel_id}")
-            except AttributeError:
-                # 如果 interaction 沒有 client 屬性，嘗試從 guild 獲取頻道
-                try:
-                    log_channel = interaction.guild.get_channel(log_channel_id)
-                    if log_channel:
-                        await log_channel.send(embed=embed)
-                    else:
-                        logger.error(f"無法找到日誌頻道 ID: {log_channel_id}")
-                except Exception as guild_error:
-                    logger.error(f"嘗試從 guild 獲取頻道時發生錯誤: {str(guild_error)}")
+            log_channel = interaction.guild.get_channel(log_channel_id)
+            if log_channel:
+                await log_channel.send(embed=embed)
+            else:
+                logger.error(f"無法找到日誌頻道 ID: {log_channel_id}")
 
         except Exception as e:
-            logger.error(f"發送分數記錄時發生錯誤: {str(e)}"
+            logger.error(f"發送分數記錄時發生錯誤: {str(e)}")
 
 #-----------------------------------------------------------------------------------------------
 async def setup(bot):
