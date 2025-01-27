@@ -26,10 +26,10 @@ class Respond(commands.Cog):
                 current_data = json.load(f)
         except FileNotFoundError:
             current_data = {}
-        
+
         # 更新資料
         current_data.update(self.member_data)
-        
+
         # 儲存更新後的資料
         with open('json/member.json', 'w', encoding='utf-8') as f:
             json.dump(current_data, f, ensure_ascii=False, indent=4)
@@ -40,7 +40,7 @@ class Respond(commands.Cog):
             return
 
         content = message.content.lower()
-            
+
         if content.startswith('!刪除使用者'):
             # 檢查權限
             if not any(role.name == "score_admin" for role in message.author.roles):
@@ -54,7 +54,7 @@ class Respond(commands.Cog):
                     return
 
                 target = args[1]
-                
+
                 # 讀取當前資料
                 with open('json/member.json', 'r', encoding='utf-8') as f:
                     member_data = json.load(f)
@@ -144,22 +144,22 @@ class Respond(commands.Cog):
 
             # 檢查格式
             parts = content.split()
-            
+
             # 重新讀取最新的 member_data
             try:
                 with open('json/member.json', 'r', encoding='utf-8') as f:
                     self.member_data = json.load(f)
             except FileNotFoundError:
                 self.member_data = {}
-            
+
             # 如果是管理員且有 mention 玩家
-            if (len(parts) == 3 and 
-                any(role.name == "score_admin" for role in message.author.roles) and 
+            if (len(parts) == 3 and
+                any(role.name == "score_admin" for role in message.author.roles) and
                 message.mentions):
-                
+
                 target_user = message.mentions[0]
                 team_num = parts[2]
-                
+
                 try:
                     team_num = int(team_num)
                     if team_num < 1 or team_num > 8:
@@ -191,7 +191,7 @@ class Respond(commands.Cog):
                         delete_after=5
                     )
                     return
-                    
+
             # 原本的自己更改組別功能
             else:
                 try:
@@ -227,6 +227,7 @@ class Respond(commands.Cog):
 
         if 'hello' in content:
             await message.channel.send('Hello!')
-
+        if self.bot.user.mentioned_in(message):
+            await message.reply("同學你好，你ㄊㄟˋ到我了🗣️")
 async def setup(bot):
     await bot.add_cog(Respond(bot))
